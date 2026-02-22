@@ -1,0 +1,1348 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/README.md b/README.md
+index 42ffffb4efc41c22dd898e75f340b4ff004f368c..e382293c360d0462bd4a2a40b5fd514859601c0c 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,61 @@
+-# renewal-vault
+\ No newline at end of file
++# Renewal Vault (iOS MVP)
++
++Native iOS 17+ SwiftUI app for tracking renewals/expirations, attachments, reminders, and Pro subscription features.
++
++## Requirements
++- Xcode 15.2+ (recommended latest Xcode 15/16)
++- iOS 17+
++- Swift 5.9+
++
++## Setup
++1. Open the project in Xcode and set your **Bundle Identifier** (e.g. `com.yourcompany.renewalvault`).
++2. Ensure Signing team is selected.
++3. Add the `StoreKit/RenewalVault.storekit` file to the run scheme for local purchase tests.
++
++## StoreKit product setup (App Store Connect)
++Create an auto-renewable subscription group and two products:
++- `com.renewalvault.pro.monthly`
++- `com.renewalvault.pro.yearly`
++
++Then submit metadata/pricing and attach to app version.
++
++## Local purchase testing
++1. In Xcode, Edit Scheme → Run → Options → StoreKit Configuration: select `RenewalVault.storekit`.
++2. Launch app and open Paywall.
++3. Purchase monthly/yearly and verify Pro gates unlock.
++4. Use “Restore Purchases” in Settings to validate restore flow.
++
++## Sandbox testing
++1. Create Sandbox Tester in App Store Connect (Users and Access → Sandbox).
++2. Sign out of App Store on test device/simulator.
++3. Install TestFlight (or debug build with remote products).
++4. Purchase using sandbox account when prompted.
++
++## Notifications behavior
++- Local notifications only (no APNs).
++- Each item schedules one notification per reminder day at 09:00 local time.
++- Any item edit/renewal cancels prior requests and reschedules.
++- To reset: delete app, or remove item (which clears pending IDs and cancels pending requests).
++
++## Architecture summary
++- SwiftUI + MVVM-ish feature slices under `RenewalVault/Features/*`
++- SwiftData models in `Core/Domain/Models.swift`
++- Runtime in-app language choice via `LanguageManager` + SwiftUI locale environment
++- Launch flow router: Language Picker → Onboarding (once) → Main tabs
++- Subscription gating centralized in `FeatureGate`
++
++## MVP coverage
++- Language picker before onboarding (English/Spanish)
++- One-time onboarding
++- Vault CRUD (default Personal)
++- Item CRUD + reminder day editor
++- Home buckets (soon/later/expired), search/upcoming toggle
++- Item detail + renewal events
++- Local reminders scheduling
++- Paywall + purchase/restore + entitlement observation
++- Privacy screen
++- DEBUG tools: simulate Pro + reset onboarding
++
++## Notes
++- Attachment ingest UI (camera/library/files) is scaffold-ready; storage and file protection implementation are included in `AttachmentStorage`.
++- PDF export engine is implemented with UIKit PDF renderer (`VaultPDFExporter`).
+diff --git a/RenewalVault/App/AppState.swift b/RenewalVault/App/AppState.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..8b6e4064e57c620df01a73934c399f582eb9eb92
+--- /dev/null
++++ b/RenewalVault/App/AppState.swift
+@@ -0,0 +1,40 @@
++import Foundation
++import SwiftData
++
++@MainActor
++final class AppState: ObservableObject {
++    @Published var hasChosenLanguage: Bool = false
++    @Published var hasCompletedOnboarding: Bool = false
++
++    private let onboardingKey = "onboarding.completed"
++
++    func bootstrapIfNeeded(modelContext: ModelContext) async {
++        hasChosenLanguage = UserDefaults.standard.string(forKey: LanguageManager.languageCodeKey) != nil
++        hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
++
++        do {
++            let descriptor = FetchDescriptor<Vault>()
++            let count = try modelContext.fetchCount(descriptor)
++            if count == 0 {
++                modelContext.insert(Vault(name: "Personal"))
++                try modelContext.save()
++            }
++        } catch {
++            assertionFailure("Failed initial bootstrap")
++        }
++    }
++
++    func setLanguageChosen() {
++        hasChosenLanguage = true
++    }
++
++    func finishOnboarding() {
++        UserDefaults.standard.set(true, forKey: onboardingKey)
++        hasCompletedOnboarding = true
++    }
++
++    func resetOnboarding() {
++        UserDefaults.standard.set(false, forKey: onboardingKey)
++        hasCompletedOnboarding = false
++    }
++}
+diff --git a/RenewalVault/App/RenewalVaultApp.swift b/RenewalVault/App/RenewalVaultApp.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..04f9d817655e978396451222b728394215312576
+--- /dev/null
++++ b/RenewalVault/App/RenewalVaultApp.swift
+@@ -0,0 +1,40 @@
++import SwiftUI
++import SwiftData
++
++@main
++struct RenewalVaultApp: App {
++    @StateObject private var appState = AppState()
++    @StateObject private var languageManager = LanguageManager()
++    @StateObject private var entitlementService = EntitlementService()
++
++    var sharedModelContainer: ModelContainer = {
++        let schema = Schema([
++            Vault.self,
++            Item.self,
++            Attachment.self,
++            RenewalEvent.self,
++            AppPreference.self
++        ])
++        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
++        do {
++            return try ModelContainer(for: schema, configurations: [config])
++        } catch {
++            fatalError("Could not create ModelContainer: \(error)")
++        }
++    }()
++
++    var body: some Scene {
++        WindowGroup {
++            RootRouterView()
++                .environmentObject(appState)
++                .environmentObject(languageManager)
++                .environmentObject(entitlementService)
++                .environment(\.locale, languageManager.locale)
++                .task {
++                    await appState.bootstrapIfNeeded(modelContext: sharedModelContainer.mainContext)
++                    await entitlementService.observeEntitlements()
++                }
++        }
++        .modelContainer(sharedModelContainer)
++    }
++}
+diff --git a/RenewalVault/App/RootRouterView.swift b/RenewalVault/App/RootRouterView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c76aecb1e4c6aae36085e78bf6b8611593b80c9
+--- /dev/null
++++ b/RenewalVault/App/RootRouterView.swift
+@@ -0,0 +1,32 @@
++import SwiftUI
++
++struct RootRouterView: View {
++    @EnvironmentObject private var appState: AppState
++
++    var body: some View {
++        Group {
++            if !appState.hasChosenLanguage {
++                LanguagePickerView()
++            } else if !appState.hasCompletedOnboarding {
++                OnboardingView()
++            } else {
++                MainTabView()
++            }
++        }
++    }
++}
++
++struct MainTabView: View {
++    var body: some View {
++        TabView {
++            NavigationStack { HomeView() }
++                .tabItem { Label("tab.home".localized, systemImage: "house") }
++
++            NavigationStack { VaultListView() }
++                .tabItem { Label("tab.vaults".localized, systemImage: "archivebox") }
++
++            NavigationStack { SettingsView() }
++                .tabItem { Label("tab.settings".localized, systemImage: "gear") }
++        }
++    }
++}
+diff --git a/RenewalVault/Core/Domain/Models.swift b/RenewalVault/Core/Domain/Models.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..e557ca7f666cd19abd8aec424fc236ecba493312
+--- /dev/null
++++ b/RenewalVault/Core/Domain/Models.swift
+@@ -0,0 +1,130 @@
++import Foundation
++import SwiftData
++
++@Model
++final class Vault {
++    @Attribute(.unique) var id: UUID
++    var name: String
++    var createdAt: Date
++    var updatedAt: Date
++    @Relationship(deleteRule: .cascade, inverse: \Item.vault) var items: [Item] = []
++
++    init(id: UUID = UUID(), name: String, createdAt: Date = .now, updatedAt: Date = .now) {
++        self.id = id
++        self.name = name
++        self.createdAt = createdAt
++        self.updatedAt = updatedAt
++    }
++}
++
++@Model
++final class Item {
++    @Attribute(.unique) var id: UUID
++    var title: String
++    var category: String
++    var issuer: String?
++    var expiryDate: Date
++    var reminderScheduleDays: [Int]
++    var repeatAfterRenewal: Bool
++    var notes: String
++    var createdAt: Date
++    var updatedAt: Date
++    var scheduledNotificationIdentifiers: [String]
++
++    var vault: Vault?
++    @Relationship(deleteRule: .cascade, inverse: \Attachment.item) var attachments: [Attachment] = []
++    @Relationship(deleteRule: .cascade, inverse: \RenewalEvent.item) var renewalEvents: [RenewalEvent] = []
++
++    init(
++        id: UUID = UUID(),
++        title: String,
++        category: String,
++        issuer: String? = nil,
++        expiryDate: Date,
++        reminderScheduleDays: [Int] = [30, 14, 7, 1],
++        repeatAfterRenewal: Bool = true,
++        notes: String = "",
++        createdAt: Date = .now,
++        updatedAt: Date = .now,
++        scheduledNotificationIdentifiers: [String] = [],
++        vault: Vault? = nil
++    ) {
++        self.id = id
++        self.title = title
++        self.category = category
++        self.issuer = issuer
++        self.expiryDate = expiryDate
++        self.reminderScheduleDays = reminderScheduleDays
++        self.repeatAfterRenewal = repeatAfterRenewal
++        self.notes = notes
++        self.createdAt = createdAt
++        self.updatedAt = updatedAt
++        self.scheduledNotificationIdentifiers = scheduledNotificationIdentifiers
++        self.vault = vault
++    }
++}
++
++@Model
++final class Attachment {
++    @Attribute(.unique) var id: UUID
++    var kind: String
++    var filename: String
++    var localPath: String
++    var createdAt: Date
++    var item: Item?
++
++    init(id: UUID = UUID(), kind: String, filename: String, localPath: String, createdAt: Date = .now, item: Item? = nil) {
++        self.id = id
++        self.kind = kind
++        self.filename = filename
++        self.localPath = localPath
++        self.createdAt = createdAt
++        self.item = item
++    }
++}
++
++@Model
++final class RenewalEvent {
++    @Attribute(.unique) var id: UUID
++    var renewedAt: Date
++    var previousExpiryDate: Date
++    var newExpiryDate: Date
++    var item: Item?
++
++    init(id: UUID = UUID(), renewedAt: Date = .now, previousExpiryDate: Date, newExpiryDate: Date, item: Item? = nil) {
++        self.id = id
++        self.renewedAt = renewedAt
++        self.previousExpiryDate = previousExpiryDate
++        self.newExpiryDate = newExpiryDate
++        self.item = item
++    }
++}
++
++@Model
++final class AppPreference {
++    @Attribute(.unique) var key: String
++    var value: String
++
++    init(key: String, value: String) {
++        self.key = key
++        self.value = value
++    }
++}
++
++enum ItemCategory: String, CaseIterable, Identifiable {
++    case passport, nationalID, driversLicense, carInsurance, lease, healthInsurance, subscription, other
++    var id: String { rawValue }
++
++    var icon: String {
++        switch self {
++        case .passport: "globe"
++        case .nationalID: "person.text.rectangle"
++        case .driversLicense: "car"
++        case .carInsurance: "shield.lefthalf.filled"
++        case .lease: "house"
++        case .healthInsurance: "heart.text.square"
++        case .subscription: "creditcard"
++        case .other: "doc"
++        }
++    }
++}
+diff --git a/RenewalVault/Core/Localization/LanguageManager.swift b/RenewalVault/Core/Localization/LanguageManager.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..2cef5f1ed5de0c4717781286f1e6d2bcd7788c38
+--- /dev/null
++++ b/RenewalVault/Core/Localization/LanguageManager.swift
+@@ -0,0 +1,34 @@
++import Foundation
++import SwiftUI
++
++@MainActor
++final class LanguageManager: ObservableObject {
++    static let languageCodeKey = "app.language.code"
++
++    @Published var selectedLanguageCode: String {
++        didSet {
++            UserDefaults.standard.set(selectedLanguageCode, forKey: Self.languageCodeKey)
++            locale = Locale(identifier: selectedLanguageCode)
++        }
++    }
++
++    @Published private(set) var locale: Locale
++
++    init() {
++        let saved = UserDefaults.standard.string(forKey: Self.languageCodeKey)
++        let preferred = Locale.preferredLanguages.first?.hasPrefix("es") == true ? "es" : "en"
++        let code = saved ?? preferred
++        self.selectedLanguageCode = code
++        self.locale = Locale(identifier: code)
++    }
++
++    func setLanguage(_ code: String) {
++        selectedLanguageCode = code
++    }
++}
++
++extension String {
++    var localized: String {
++        NSLocalizedString(self, comment: "")
++    }
++}
+diff --git a/RenewalVault/Core/Monetization/EntitlementService.swift b/RenewalVault/Core/Monetization/EntitlementService.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..844955710bdff9b68a046cb6253146107badd9bc
+--- /dev/null
++++ b/RenewalVault/Core/Monetization/EntitlementService.swift
+@@ -0,0 +1,46 @@
++import Foundation
++import StoreKit
++
++@MainActor
++final class EntitlementService: ObservableObject {
++    @Published var isPro: Bool = false
++    #if DEBUG
++    @Published var debugForcePro: Bool = false
++    #endif
++
++    let productIDs = ["com.renewalvault.pro.monthly", "com.renewalvault.pro.yearly"]
++
++    func observeEntitlements() async {
++        await refreshEntitlements()
++        for await _ in Transaction.updates {
++            await refreshEntitlements()
++        }
++    }
++
++    func refreshEntitlements() async {
++        var hasPro = false
++        for await result in Transaction.currentEntitlements {
++            if case .verified(let transaction) = result, productIDs.contains(transaction.productID) {
++                hasPro = true
++            }
++        }
++        #if DEBUG
++        isPro = hasPro || debugForcePro
++        #else
++        isPro = hasPro
++        #endif
++    }
++
++    func purchase(product: Product) async throws {
++        let result = try await product.purchase()
++        if case .success(let verification) = result, case .verified(let transaction) = verification {
++            await transaction.finish()
++            await refreshEntitlements()
++        }
++    }
++
++    func restorePurchases() async throws {
++        try await AppStore.sync()
++        await refreshEntitlements()
++    }
++}
+diff --git a/RenewalVault/Core/Monetization/SubscriptionTier.swift b/RenewalVault/Core/Monetization/SubscriptionTier.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..b50dbbcd467729c952a59c6a555bf00ee7f8201a
+--- /dev/null
++++ b/RenewalVault/Core/Monetization/SubscriptionTier.swift
+@@ -0,0 +1,24 @@
++import Foundation
++
++enum SubscriptionTier {
++    case free
++    case pro
++}
++
++struct FeatureGate {
++    static func canCreateVault(currentCount: Int, tier: SubscriptionTier) -> Bool {
++        tier == .pro || currentCount < 1
++    }
++
++    static func canCreateItem(currentCount: Int, tier: SubscriptionTier) -> Bool {
++        tier == .pro || currentCount < 5
++    }
++
++    static func canAddAttachment(currentCount: Int, tier: SubscriptionTier) -> Bool {
++        tier == .pro || currentCount < 3
++    }
++
++    static func canExportPDF(tier: SubscriptionTier) -> Bool {
++        tier == .pro
++    }
++}
+diff --git a/RenewalVault/Core/Notifications/NotificationService.swift b/RenewalVault/Core/Notifications/NotificationService.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..e431a06e4c65d7eb1d206c74a2c0fde56c741290
+--- /dev/null
++++ b/RenewalVault/Core/Notifications/NotificationService.swift
+@@ -0,0 +1,40 @@
++import Foundation
++import UserNotifications
++import UIKit
++
++struct NotificationService {
++    static let shared = NotificationService()
++
++    func requestPermission() async -> Bool {
++        (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])) ?? false
++    }
++
++    func openSettings() {
++        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
++        Task { @MainActor in
++            UIApplication.shared.open(url)
++        }
++    }
++
++    func reschedule(item: Item) async {
++        let center = UNUserNotificationCenter.current()
++        center.removePendingNotificationRequests(withIdentifiers: item.scheduledNotificationIdentifiers)
++        item.scheduledNotificationIdentifiers = []
++
++        let dates = ReminderScheduler.reminderDates(expiryDate: item.expiryDate, reminderDays: item.reminderScheduleDays)
++        for (index, date) in dates.enumerated() {
++            var components = Calendar.current.dateComponents([.year, .month, .day], from: date)
++            components.hour = 9
++            components.minute = 0
++            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
++            let content = UNMutableNotificationContent()
++            content.title = "notification.title".localized
++            let days = Calendar.current.dateComponents([.day], from: .now, to: item.expiryDate).day ?? 0
++            content.body = days < 0 ? "notification.expired".localized : String(format: "notification.expires_in".localized, item.title, max(days, 0))
++            let id = "item-\(item.id)-\(index)"
++            let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
++            try? await center.add(request)
++            item.scheduledNotificationIdentifiers.append(id)
++        }
++    }
++}
+diff --git a/RenewalVault/Core/Notifications/ReminderScheduler.swift b/RenewalVault/Core/Notifications/ReminderScheduler.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..06e0d50e2cd64010b706d60300c52c0932619d05
+--- /dev/null
++++ b/RenewalVault/Core/Notifications/ReminderScheduler.swift
+@@ -0,0 +1,31 @@
++import Foundation
++
++struct ReminderScheduler {
++    static func reminderDates(expiryDate: Date, reminderDays: [Int], calendar: Calendar = .current) -> [Date] {
++        reminderDays
++            .filter { $0 >= 0 }
++            .removingDuplicates()
++            .compactMap { days in calendar.date(byAdding: .day, value: -days, to: expiryDate) }
++            .sorted()
++    }
++
++    static func bucket(for item: Item, now: Date = .now, calendar: Calendar = .current) -> ItemBucket {
++        let start = calendar.startOfDay(for: now)
++        let end = calendar.startOfDay(for: item.expiryDate)
++        let days = calendar.dateComponents([.day], from: start, to: end).day ?? 0
++        if days < 0 { return .expired }
++        if days <= 30 { return .soon }
++        return .later
++    }
++}
++
++enum ItemBucket: String {
++    case soon, later, expired
++}
++
++private extension Array where Element: Hashable {
++    func removingDuplicates() -> [Element] {
++        var seen = Set<Element>()
++        return filter { seen.insert($0).inserted }
++    }
++}
+diff --git a/RenewalVault/Core/PDF/VaultPDFExporter.swift b/RenewalVault/Core/PDF/VaultPDFExporter.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c71f6a4a1bf75c1f6159845d70974b8bfe02795
+--- /dev/null
++++ b/RenewalVault/Core/PDF/VaultPDFExporter.swift
+@@ -0,0 +1,27 @@
++import Foundation
++import PDFKit
++import UIKit
++
++struct VaultPDFExporter {
++    func export(vault: Vault) -> URL? {
++        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 595, height: 842))
++        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(vault.name)-report.pdf")
++        do {
++            try renderer.writePDF(to: url) { ctx in
++                ctx.beginPage()
++                let header = "\(vault.name) - \(Date().formatted(date: .abbreviated, time: .shortened))"
++                header.draw(at: CGPoint(x: 36, y: 36), withAttributes: [.font: UIFont.boldSystemFont(ofSize: 20)])
++                var y: CGFloat = 80
++                for item in vault.items.sorted(by: { $0.expiryDate < $1.expiryDate }) {
++                    let line = "• \(item.title) | \(item.category) | \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))"
++                    line.draw(at: CGPoint(x: 36, y: y), withAttributes: [.font: UIFont.systemFont(ofSize: 12)])
++                    y += 18
++                    if y > 800 { ctx.beginPage(); y = 36 }
++                }
++            }
++            return url
++        } catch {
++            return nil
++        }
++    }
++}
+diff --git a/RenewalVault/Core/Persistence/.gitkeep b/RenewalVault/Core/Persistence/.gitkeep
+new file mode 100644
+index 0000000000000000000000000000000000000000..35636d609d460feccdf2676711c0b1ef53cdd9a4
+--- /dev/null
++++ b/RenewalVault/Core/Persistence/.gitkeep
+@@ -0,0 +1 @@
++# Keep directory in git
+diff --git a/RenewalVault/Core/Storage/AttachmentStorage.swift b/RenewalVault/Core/Storage/AttachmentStorage.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..d57d0c83376a9ac5dce1da10a4fdab05dbeb2c72
+--- /dev/null
++++ b/RenewalVault/Core/Storage/AttachmentStorage.swift
+@@ -0,0 +1,27 @@
++import Foundation
++
++struct AttachmentStorage {
++    static let shared = AttachmentStorage()
++
++    private var baseURL: URL {
++        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
++        let folder = appSupport.appendingPathComponent("Attachments", isDirectory: true)
++        if !FileManager.default.fileExists(atPath: folder.path) {
++            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
++            try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: folder.path)
++        }
++        return folder
++    }
++
++    func save(data: Data, fileExtension: String) throws -> String {
++        let filename = "\(UUID().uuidString).\(fileExtension)"
++        let url = baseURL.appendingPathComponent(filename)
++        try data.write(to: url, options: .atomic)
++        try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
++        return filename
++    }
++
++    func fileURL(relativePath: String) -> URL {
++        baseURL.appendingPathComponent(relativePath)
++    }
++}
+diff --git a/RenewalVault/Core/Utilities/.gitkeep b/RenewalVault/Core/Utilities/.gitkeep
+new file mode 100644
+index 0000000000000000000000000000000000000000..35636d609d460feccdf2676711c0b1ef53cdd9a4
+--- /dev/null
++++ b/RenewalVault/Core/Utilities/.gitkeep
+@@ -0,0 +1 @@
++# Keep directory in git
+diff --git a/RenewalVault/Features/Home/HomeView.swift b/RenewalVault/Features/Home/HomeView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..2ec54dc2bb78fb8eda6c9d973c9d414e33b07758
+--- /dev/null
++++ b/RenewalVault/Features/Home/HomeView.swift
+@@ -0,0 +1,64 @@
++import SwiftUI
++import SwiftData
++
++struct HomeView: View {
++    @Query(sort: \Item.expiryDate) private var items: [Item]
++    @Query(sort: \Vault.name) private var vaults: [Vault]
++    @State private var query = ""
++    @State private var selectedVaultID: UUID?
++    @State private var categoryFilter = ""
++    @State private var upcomingOnly = false
++
++    private var filtered: [Item] {
++        items.filter { item in
++            let qOK = query.isEmpty || item.title.localizedCaseInsensitiveContains(query) || (item.issuer?.localizedCaseInsensitiveContains(query) ?? false)
++            let vOK = selectedVaultID == nil || item.vault?.id == selectedVaultID
++            let cOK = categoryFilter.isEmpty || item.category == categoryFilter
++            let upOK = !upcomingOnly || item.expiryDate >= Calendar.current.startOfDay(for: .now)
++            return qOK && vOK && cOK && upOK
++        }
++    }
++
++    var body: some View {
++        List {
++            Section("home.filters".localized) {
++                TextField("home.search".localized, text: $query)
++                Toggle("home.upcoming_only".localized, isOn: $upcomingOnly)
++            }
++
++            bucketSection(title: "home.expiring_soon".localized, bucket: .soon)
++            bucketSection(title: "home.later".localized, bucket: .later)
++            bucketSection(title: "home.expired".localized, bucket: .expired)
++
++            if items.isEmpty {
++                Section("home.empty".localized) {
++                    Text("Passport • National ID • Driver’s license • Car insurance • Lease • Health insurance")
++                        .font(.caption)
++                }
++            }
++        }
++        .navigationTitle("tab.home".localized)
++        .toolbar {
++            NavigationLink(destination: ItemEditorView(item: nil)) {
++                Label("common.add".localized, systemImage: "plus")
++            }
++        }
++    }
++
++    @ViewBuilder
++    private func bucketSection(title: String, bucket: ItemBucket) -> some View {
++        let sectionItems = filtered.filter { ReminderScheduler.bucket(for: $0) == bucket }
++        if !sectionItems.isEmpty {
++            Section(title) {
++                ForEach(sectionItems) { item in
++                    NavigationLink(destination: ItemDetailView(item: item)) {
++                        VStack(alignment: .leading) {
++                            Text(item.title).font(.headline)
++                            Text(item.vault?.name ?? "-") + Text(" · \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))")
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
+diff --git a/RenewalVault/Features/ItemDetail/ItemDetailView.swift b/RenewalVault/Features/ItemDetail/ItemDetailView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..e077501a8810db60ee82827cf6c579477f06f02e
+--- /dev/null
++++ b/RenewalVault/Features/ItemDetail/ItemDetailView.swift
+@@ -0,0 +1,56 @@
++import SwiftUI
++import QuickLook
++
++struct ItemDetailView: View {
++    @Environment(\.modelContext) private var modelContext
++    let item: Item
++    @State private var showingRenew = false
++    @State private var newDate = Date()
++
++    var body: some View {
++        List {
++            Section("item.details".localized) {
++                Text(item.title)
++                Text(item.category)
++                Text(item.expiryDate.formatted(date: .abbreviated, time: .omitted))
++                Text(item.notes)
++            }
++
++            Section("item.attachments".localized) {
++                ForEach(item.attachments) { a in
++                    Text("\(a.kind.uppercased()): \(a.filename)")
++                }
++            }
++
++            Section("item.renewal_history".localized) {
++                ForEach(item.renewalEvents.sorted { $0.renewedAt > $1.renewedAt }) { event in
++                    Text("\(event.previousExpiryDate.formatted(date: .abbreviated, time: .omitted)) → \(event.newExpiryDate.formatted(date: .abbreviated, time: .omitted))")
++                }
++            }
++        }
++        .navigationTitle("item.detail".localized)
++        .toolbar {
++            NavigationLink("common.edit".localized) { ItemEditorView(item: item) }
++            Button("item.mark_renewed".localized) {
++                newDate = item.expiryDate.addingTimeInterval(60*60*24*365)
++                showingRenew = true
++            }
++        }
++        .sheet(isPresented: $showingRenew) {
++            NavigationStack {
++                Form { DatePicker("item.new_expiry".localized, selection: $newDate, displayedComponents: .date) }
++                    .toolbar {
++                        Button("common.save".localized) {
++                            let event = RenewalEvent(previousExpiryDate: item.expiryDate, newExpiryDate: newDate, item: item)
++                            item.expiryDate = newDate
++                            item.renewalEvents.append(event)
++                            modelContext.insert(event)
++                            try? modelContext.save()
++                            Task { await NotificationService.shared.reschedule(item: item) }
++                            showingRenew = false
++                        }
++                    }
++            }
++        }
++    }
++}
+diff --git a/RenewalVault/Features/ItemDetail/ItemEditorView.swift b/RenewalVault/Features/ItemDetail/ItemEditorView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..97ca0f0f87cb6c62f6b5147863f83fb288a0a2c1
+--- /dev/null
++++ b/RenewalVault/Features/ItemDetail/ItemEditorView.swift
+@@ -0,0 +1,85 @@
++import SwiftUI
++import SwiftData
++
++struct ItemEditorView: View {
++    @Environment(\.modelContext) private var modelContext
++    @Environment(\.dismiss) private var dismiss
++    @EnvironmentObject private var entitlement: EntitlementService
++    @Query private var items: [Item]
++    @Query(sort: \Vault.name) private var vaults: [Vault]
++
++    let item: Item?
++    @State private var title = ""
++    @State private var category = ItemCategory.passport.rawValue
++    @State private var issuer = ""
++    @State private var expiryDate = Date().addingTimeInterval(60*60*24*30)
++    @State private var notes = ""
++    @State private var reminderDays = [30,14,7,1]
++
++    var body: some View {
++        Form {
++            TextField("item.title".localized, text: $title)
++            Picker("item.category".localized, selection: $category) {
++                ForEach(ItemCategory.allCases) { c in Text(c.rawValue).tag(c.rawValue) }
++            }
++            TextField("item.issuer".localized, text: $issuer)
++            DatePicker("item.expiry".localized, selection: $expiryDate, displayedComponents: .date)
++            TextField("item.notes".localized, text: $notes, axis: .vertical)
++            ReminderEditorView(reminderDays: $reminderDays)
++        }
++        .navigationTitle(item == nil ? "item.add".localized : "item.edit".localized)
++        .toolbar {
++            Button("common.save".localized) { save() }
++        }
++        .onAppear { load() }
++    }
++
++    private func load() {
++        guard let item else { return }
++        title = item.title; category = item.category; issuer = item.issuer ?? ""; expiryDate = item.expiryDate; notes = item.notes
++        reminderDays = item.reminderScheduleDays
++    }
++
++    private func save() {
++        guard !title.isEmpty else { return }
++        if item == nil && !FeatureGate.canCreateItem(currentCount: items.count, tier: entitlement.isPro ? .pro : .free) { return }
++        let normalized = Array(Set(reminderDays.filter { $0 >= 0 })).sorted(by: >)
++        if let item {
++            item.title = title; item.category = category; item.issuer = issuer.isEmpty ? nil : issuer
++            item.expiryDate = expiryDate; item.notes = notes; item.reminderScheduleDays = normalized; item.updatedAt = .now
++            Task { await NotificationService.shared.reschedule(item: item) }
++        } else {
++            let new = Item(title: title, category: category, issuer: issuer.isEmpty ? nil : issuer, expiryDate: expiryDate, reminderScheduleDays: normalized, notes: notes, vault: vaults.first)
++            modelContext.insert(new)
++            Task { await NotificationService.shared.reschedule(item: new) }
++        }
++        try? modelContext.save()
++        dismiss()
++    }
++}
++
++struct ReminderEditorView: View {
++    @Binding var reminderDays: [Int]
++    @State private var custom = ""
++    let common = [90,60,30,14,7,3,1,0]
++
++    var body: some View {
++        Section("item.reminders".localized) {
++            LazyVGrid(columns: [GridItem(.adaptive(minimum: 64))]) {
++                ForEach(common, id: \.self) { day in
++                    let selected = reminderDays.contains(day)
++                    Button("\(day)") {
++                        if selected { reminderDays.removeAll { $0 == day } } else { reminderDays.append(day) }
++                    }.buttonStyle(.borderedProminent).tint(selected ? .blue : .gray)
++                }
++            }
++            HStack {
++                TextField("custom", text: $custom)
++                Button("common.add".localized) {
++                    if let d = Int(custom), d >= 0, !reminderDays.contains(d) { reminderDays.append(d) }
++                    custom = ""
++                }
++            }
++        }
++    }
++}
+diff --git a/RenewalVault/Features/Language/LanguagePickerView.swift b/RenewalVault/Features/Language/LanguagePickerView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..a1e24b705d4af3ba2a0658fb848ae47769c1d5b6
+--- /dev/null
++++ b/RenewalVault/Features/Language/LanguagePickerView.swift
+@@ -0,0 +1,30 @@
++import SwiftUI
++
++struct LanguagePickerView: View {
++    @EnvironmentObject private var languageManager: LanguageManager
++    @EnvironmentObject private var appState: AppState
++    @State private var selected: String
++
++    init() {
++        let preferred = Locale.preferredLanguages.first?.hasPrefix("es") == true ? "es" : "en"
++        _selected = State(initialValue: preferred)
++    }
++
++    var body: some View {
++        VStack(spacing: 20) {
++            Text("language.title".localized).font(.largeTitle.bold())
++            Picker("language.select".localized, selection: $selected) {
++                Text("English").tag("en")
++                Text("Español").tag("es")
++            }
++            .pickerStyle(.segmented)
++
++            Button("language.continue".localized) {
++                languageManager.setLanguage(selected)
++                appState.setLanguageChosen()
++            }
++            .buttonStyle(.borderedProminent)
++        }
++        .padding()
++    }
++}
+diff --git a/RenewalVault/Features/Onboarding/OnboardingView.swift b/RenewalVault/Features/Onboarding/OnboardingView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc3f037a8a9690e598f14db9317ff25a5881ba8d
+--- /dev/null
++++ b/RenewalVault/Features/Onboarding/OnboardingView.swift
+@@ -0,0 +1,31 @@
++import SwiftUI
++
++struct OnboardingView: View {
++    @EnvironmentObject private var appState: AppState
++    @State private var page = 0
++
++    private let pages = ["onboard.track", "onboard.smart", "onboard.attach", "onboard.export"]
++
++    var body: some View {
++        VStack {
++            TabView(selection: $page) {
++                ForEach(Array(pages.enumerated()), id: \.offset) { idx, key in
++                    VStack(spacing: 12) {
++                        Image(systemName: ["calendar.badge.clock","bell.badge","paperclip","doc.richtext"][idx])
++                            .font(.system(size: 58))
++                        Text(key.localized).font(.title2.bold())
++                    }
++                    .tag(idx)
++                }
++            }
++            .tabViewStyle(.page)
++
++            HStack {
++                Button("common.skip".localized) { appState.finishOnboarding() }
++                Spacer()
++                Button("onboard.get_started".localized) { appState.finishOnboarding() }
++                    .buttonStyle(.borderedProminent)
++            }.padding()
++        }
++    }
++}
+diff --git a/RenewalVault/Features/Paywall/PaywallView.swift b/RenewalVault/Features/Paywall/PaywallView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..542a612c675ee3702d303897fa851486bd6b9f6d
+--- /dev/null
++++ b/RenewalVault/Features/Paywall/PaywallView.swift
+@@ -0,0 +1,26 @@
++import SwiftUI
++import StoreKit
++
++struct PaywallView: View {
++    @EnvironmentObject private var entitlement: EntitlementService
++    @Environment(\.dismiss) private var dismiss
++    @State private var products: [Product] = []
++
++    var body: some View {
++        NavigationStack {
++            List {
++                Section("paywall.title".localized) {
++                    Text("paywall.features".localized)
++                }
++                ForEach(products, id: \.id) { product in
++                    Button("\(product.displayName) - \(product.displayPrice)") {
++                        Task { try? await entitlement.purchase(product: product); dismiss() }
++                    }
++                }
++            }
++            .task {
++                products = (try? await Product.products(for: entitlement.productIDs)) ?? []
++            }
++        }
++    }
++}
+diff --git a/RenewalVault/Features/Privacy/PrivacyView.swift b/RenewalVault/Features/Privacy/PrivacyView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..bcc1e17713184224aba3d6248d43e9e4232f2ba1
+--- /dev/null
++++ b/RenewalVault/Features/Privacy/PrivacyView.swift
+@@ -0,0 +1,11 @@
++import SwiftUI
++
++struct PrivacyView: View {
++    var body: some View {
++        ScrollView {
++            Text("privacy.body".localized)
++                .padding()
++        }
++        .navigationTitle("settings.privacy".localized)
++    }
++}
+diff --git a/RenewalVault/Features/Search/.gitkeep b/RenewalVault/Features/Search/.gitkeep
+new file mode 100644
+index 0000000000000000000000000000000000000000..35636d609d460feccdf2676711c0b1ef53cdd9a4
+--- /dev/null
++++ b/RenewalVault/Features/Search/.gitkeep
+@@ -0,0 +1 @@
++# Keep directory in git
+diff --git a/RenewalVault/Features/Settings/SettingsView.swift b/RenewalVault/Features/Settings/SettingsView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..d937e730e0546d0945f5cb831a1709172c7d6eea
+--- /dev/null
++++ b/RenewalVault/Features/Settings/SettingsView.swift
+@@ -0,0 +1,45 @@
++import SwiftUI
++
++struct SettingsView: View {
++    @EnvironmentObject private var languageManager: LanguageManager
++    @EnvironmentObject private var appState: AppState
++    @EnvironmentObject private var entitlement: EntitlementService
++    @State private var showPaywall = false
++
++    var body: some View {
++        List {
++            Section("settings.language".localized) {
++                Picker("settings.language".localized, selection: $languageManager.selectedLanguageCode) {
++                    Text("English").tag("en")
++                    Text("Español").tag("es")
++                }
++                .pickerStyle(.segmented)
++            }
++
++            Section("settings.subscription".localized) {
++                Button("settings.manage_subscription".localized) { showPaywall = true }
++                Button("settings.restore".localized) { Task { try? await entitlement.restorePurchases() } }
++            }
++
++            Section("settings.notifications".localized) {
++                Button("settings.notification_settings".localized) { NotificationService.shared.openSettings() }
++            }
++
++            Section("settings.privacy".localized) {
++                NavigationLink("settings.privacy".localized) { PrivacyView() }
++            }
++
++            #if DEBUG
++            Section("Developer") {
++                Toggle("Simulate Pro", isOn: $entitlement.debugForcePro)
++                    .onChange(of: entitlement.debugForcePro) { _ in
++                        Task { await entitlement.refreshEntitlements() }
++                    }
++                Button("Reset onboarding") { appState.resetOnboarding() }
++            }
++            #endif
++        }
++        .navigationTitle("tab.settings".localized)
++        .sheet(isPresented: $showPaywall) { PaywallView() }
++    }
++}
+diff --git a/RenewalVault/Features/Shared/.gitkeep b/RenewalVault/Features/Shared/.gitkeep
+new file mode 100644
+index 0000000000000000000000000000000000000000..35636d609d460feccdf2676711c0b1ef53cdd9a4
+--- /dev/null
++++ b/RenewalVault/Features/Shared/.gitkeep
+@@ -0,0 +1 @@
++# Keep directory in git
+diff --git a/RenewalVault/Features/Vaults/VaultListView.swift b/RenewalVault/Features/Vaults/VaultListView.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..06b5d0aa20a5fd21cba1320c0d38cd52c313e8ab
+--- /dev/null
++++ b/RenewalVault/Features/Vaults/VaultListView.swift
+@@ -0,0 +1,37 @@
++import SwiftUI
++import SwiftData
++
++struct VaultListView: View {
++    @Environment(\.modelContext) private var modelContext
++    @EnvironmentObject private var entitlement: EntitlementService
++    @Query(sort: \Vault.createdAt) private var vaults: [Vault]
++    @State private var name = ""
++
++    var body: some View {
++        List {
++            ForEach(vaults) { vault in
++                Text(vault.name)
++            }
++            .onDelete(perform: delete)
++
++            Section("vault.new".localized) {
++                TextField("vault.name".localized, text: $name)
++                Button("common.add".localized, action: add)
++            }
++        }
++        .navigationTitle("tab.vaults".localized)
++    }
++
++    private func add() {
++        guard !name.isEmpty else { return }
++        guard FeatureGate.canCreateVault(currentCount: vaults.count, tier: entitlement.isPro ? .pro : .free) else { return }
++        modelContext.insert(Vault(name: name))
++        try? modelContext.save()
++        name = ""
++    }
++
++    private func delete(at offsets: IndexSet) {
++        offsets.map { vaults[$0] }.forEach(modelContext.delete)
++        try? modelContext.save()
++    }
++}
+diff --git a/RenewalVault/Resources/Assets.xcassets/Contents.json b/RenewalVault/Resources/Assets.xcassets/Contents.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..73c00596a7fca3f3d4bdd64053b69d86745f9e10
+--- /dev/null
++++ b/RenewalVault/Resources/Assets.xcassets/Contents.json
+@@ -0,0 +1,6 @@
++{
++  "info" : {
++    "author" : "xcode",
++    "version" : 1
++  }
++}
+diff --git a/RenewalVault/Resources/en.lproj/Localizable.strings b/RenewalVault/Resources/en.lproj/Localizable.strings
+new file mode 100644
+index 0000000000000000000000000000000000000000..e487c8e1048ed7cc40abc97ce3333fa48e8f5a1a
+--- /dev/null
++++ b/RenewalVault/Resources/en.lproj/Localizable.strings
+@@ -0,0 +1,51 @@
++"language.title" = "Choose your language";
++"language.select" = "Language";
++"language.continue" = "Continue";
++"tab.home" = "Home";
++"tab.vaults" = "Vaults";
++"tab.settings" = "Settings";
++"common.skip" = "Skip";
++"onboard.get_started" = "Get started";
++"onboard.track" = "Track all your expirations in one place.";
++"onboard.smart" = "Get smart reminders before deadlines.";
++"onboard.attach" = "Attach photos and PDFs to each item.";
++"onboard.export" = "Export your vault to PDF with Pro.";
++"home.filters" = "Filters";
++"home.search" = "Search title or issuer";
++"home.upcoming_only" = "Upcoming only";
++"home.expiring_soon" = "Expiring soon";
++"home.later" = "Later";
++"home.expired" = "Expired";
++"home.empty" = "No renewals yet";
++"common.add" = "Add";
++"common.save" = "Save";
++"common.edit" = "Edit";
++"item.title" = "Title";
++"item.category" = "Category";
++"item.issuer" = "Issuer";
++"item.expiry" = "Expiry date";
++"item.notes" = "Notes";
++"item.reminders" = "Reminders (days before)";
++"item.add" = "Add Item";
++"item.edit" = "Edit Item";
++"item.detail" = "Item Detail";
++"item.details" = "Details";
++"item.attachments" = "Attachments";
++"item.renewal_history" = "Renewal history";
++"item.mark_renewed" = "Mark renewed";
++"item.new_expiry" = "New expiry date";
++"vault.new" = "New Vault";
++"vault.name" = "Vault name";
++"settings.language" = "Language";
++"settings.subscription" = "Subscription";
++"settings.manage_subscription" = "Upgrade to Pro";
++"settings.restore" = "Restore Purchases";
++"settings.notifications" = "Notifications";
++"settings.notification_settings" = "Open Notification Settings";
++"settings.privacy" = "Privacy";
++"privacy.body" = "Renewal Vault stores your data locally on device. We do not track your activity by default.";
++"paywall.title" = "Renewal Vault Pro";
++"paywall.features" = "Unlimited vaults, unlimited items, unlimited attachments, PDF export.";
++"notification.title" = "Renewal Reminder";
++"notification.expired" = "This item is expired.";
++"notification.expires_in" = "%@ expires in %d day(s).";
+diff --git a/RenewalVault/Resources/es.lproj/Localizable.strings b/RenewalVault/Resources/es.lproj/Localizable.strings
+new file mode 100644
+index 0000000000000000000000000000000000000000..e3c655ab3deb1b47beffd932c412f4c101a1e5b1
+--- /dev/null
++++ b/RenewalVault/Resources/es.lproj/Localizable.strings
+@@ -0,0 +1,51 @@
++"language.title" = "Elige tu idioma";
++"language.select" = "Idioma";
++"language.continue" = "Continuar";
++"tab.home" = "Inicio";
++"tab.vaults" = "Bóvedas";
++"tab.settings" = "Ajustes";
++"common.skip" = "Omitir";
++"onboard.get_started" = "Comenzar";
++"onboard.track" = "Controla todos tus vencimientos en un solo lugar.";
++"onboard.smart" = "Recibe recordatorios inteligentes antes de las fechas límite.";
++"onboard.attach" = "Adjunta fotos y PDF a cada elemento.";
++"onboard.export" = "Exporta tu bóveda a PDF con Pro.";
++"home.filters" = "Filtros";
++"home.search" = "Buscar por título o emisor";
++"home.upcoming_only" = "Solo próximos";
++"home.expiring_soon" = "Vencen pronto";
++"home.later" = "Después";
++"home.expired" = "Vencidos";
++"home.empty" = "Aún no hay renovaciones";
++"common.add" = "Agregar";
++"common.save" = "Guardar";
++"common.edit" = "Editar";
++"item.title" = "Título";
++"item.category" = "Categoría";
++"item.issuer" = "Emisor";
++"item.expiry" = "Fecha de vencimiento";
++"item.notes" = "Notas";
++"item.reminders" = "Recordatorios (días antes)";
++"item.add" = "Agregar elemento";
++"item.edit" = "Editar elemento";
++"item.detail" = "Detalle";
++"item.details" = "Detalles";
++"item.attachments" = "Adjuntos";
++"item.renewal_history" = "Historial de renovación";
++"item.mark_renewed" = "Marcar renovado";
++"item.new_expiry" = "Nueva fecha de vencimiento";
++"vault.new" = "Nueva bóveda";
++"vault.name" = "Nombre de bóveda";
++"settings.language" = "Idioma";
++"settings.subscription" = "Suscripción";
++"settings.manage_subscription" = "Actualizar a Pro";
++"settings.restore" = "Restaurar compras";
++"settings.notifications" = "Notificaciones";
++"settings.notification_settings" = "Abrir ajustes de notificación";
++"settings.privacy" = "Privacidad";
++"privacy.body" = "Renewal Vault guarda tus datos localmente en el dispositivo. No rastreamos tu actividad por defecto.";
++"paywall.title" = "Renewal Vault Pro";
++"paywall.features" = "Bóvedas ilimitadas, elementos ilimitados, adjuntos ilimitados, exportación PDF.";
++"notification.title" = "Recordatorio de renovación";
++"notification.expired" = "Este elemento está vencido.";
++"notification.expires_in" = "%@ vence en %d día(s).";
+diff --git a/RenewalVaultTests/RenewalVaultTests.swift b/RenewalVaultTests/RenewalVaultTests.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..f781afcee1a4612aab771ac6820eab8977573065
+--- /dev/null
++++ b/RenewalVaultTests/RenewalVaultTests.swift
+@@ -0,0 +1,46 @@
++import XCTest
++@testable import RenewalVault
++
++final class RenewalVaultTests: XCTestCase {
++    func testGroupingLogic() {
++        let vault = Vault(name: "P")
++        let now = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: 1_700_000_000))
++        let soonItem = Item(title: "Soon", category: "passport", expiryDate: Calendar.current.date(byAdding: .day, value: 15, to: now)!, vault: vault)
++        let laterItem = Item(title: "Later", category: "passport", expiryDate: Calendar.current.date(byAdding: .day, value: 100, to: now)!, vault: vault)
++        let expiredItem = Item(title: "Expired", category: "passport", expiryDate: Calendar.current.date(byAdding: .day, value: -1, to: now)!, vault: vault)
++
++        XCTAssertEqual(ReminderScheduler.bucket(for: soonItem, now: now), .soon)
++        XCTAssertEqual(ReminderScheduler.bucket(for: laterItem, now: now), .later)
++        XCTAssertEqual(ReminderScheduler.bucket(for: expiredItem, now: now), .expired)
++    }
++
++    func testReminderSchedulingLeapYear() {
++        var calendar = Calendar(identifier: .gregorian)
++        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
++        let expiry = calendar.date(from: DateComponents(year: 2024, month: 3, day: 1))!
++
++        let dates = ReminderScheduler.reminderDates(expiryDate: expiry, reminderDays: [1, 30], calendar: calendar)
++        let expectedOne = calendar.date(from: DateComponents(year: 2024, month: 2, day: 29))!
++        let expectedThirty = calendar.date(from: DateComponents(year: 2024, month: 1, day: 31))!
++        XCTAssertTrue(dates.contains(expectedOne))
++        XCTAssertTrue(dates.contains(expectedThirty))
++    }
++
++    func testFreeVsProGate() {
++        XCTAssertFalse(FeatureGate.canCreateItem(currentCount: 5, tier: .free))
++        XCTAssertTrue(FeatureGate.canCreateItem(currentCount: 5, tier: .pro))
++        XCTAssertFalse(FeatureGate.canExportPDF(tier: .free))
++        XCTAssertTrue(FeatureGate.canExportPDF(tier: .pro))
++    }
++
++    @MainActor
++    func testLanguageFlowStateMachine() async {
++        let defaults = UserDefaults.standard
++        defaults.removeObject(forKey: LanguageManager.languageCodeKey)
++        defaults.removeObject(forKey: "onboarding.completed")
++
++        let state = AppState()
++        XCTAssertFalse(state.hasChosenLanguage)
++        XCTAssertFalse(state.hasCompletedOnboarding)
++    }
++}
+diff --git a/StoreKit/RenewalVault.storekit b/StoreKit/RenewalVault.storekit
+new file mode 100644
+index 0000000000000000000000000000000000000000..48437d61af084c6d946d5f0bb3644e5195a4bfe8
+--- /dev/null
++++ b/StoreKit/RenewalVault.storekit
+@@ -0,0 +1,88 @@
++{
++  "identifier" : "RenewalVaultLocalConfig",
++  "nonRenewingSubscriptions" : [
++
++  ],
++  "products" : [
++
++  ],
++  "settings" : {
++    "_applicationInternalID" : "123456789",
++    "_developerTeamID" : "TEAMID1234",
++    "_failTransactionsEnabled" : false,
++    "_lastSynchronizedDate" : 0,
++    "_locale" : "en_US",
++    "_renewalBillingIssuesEnabled" : false,
++    "_storefront" : "USA",
++    "_timeRate" : 1
++  },
++  "subscriptionGroups" : [
++    {
++      "id" : "group.renewalvault.pro",
++      "localizations" : [
++        {
++          "description" : "Unlock unlimited vaults, items, and attachments.",
++          "displayName" : "Renewal Vault Pro",
++          "locale" : "en_US"
++        }
++      ],
++      "name" : "Renewal Vault Pro",
++      "subscriptions" : [
++        {
++          "adHocOffers" : [
++
++          ],
++          "codeOffers" : [
++
++          ],
++          "displayPrice" : "4.99",
++          "familyShareable" : false,
++          "groupNumber" : 1,
++          "internalID" : "monthly001",
++          "introductoryOffer" : null,
++          "localizations" : [
++            {
++              "description" : "Monthly Pro access",
++              "displayName" : "Pro Monthly",
++              "locale" : "en_US"
++            }
++          ],
++          "productID" : "com.renewalvault.pro.monthly",
++          "recurringSubscriptionPeriod" : "P1M",
++          "referenceName" : "Pro Monthly",
++          "subscriptionGroupID" : "group.renewalvault.pro",
++          "type" : "RecurringSubscription"
++        },
++        {
++          "adHocOffers" : [
++
++          ],
++          "codeOffers" : [
++
++          ],
++          "displayPrice" : "39.99",
++          "familyShareable" : false,
++          "groupNumber" : 2,
++          "internalID" : "yearly001",
++          "introductoryOffer" : null,
++          "localizations" : [
++            {
++              "description" : "Annual Pro access",
++              "displayName" : "Pro Yearly",
++              "locale" : "en_US"
++            }
++          ],
++          "productID" : "com.renewalvault.pro.yearly",
++          "recurringSubscriptionPeriod" : "P1Y",
++          "referenceName" : "Pro Yearly",
++          "subscriptionGroupID" : "group.renewalvault.pro",
++          "type" : "RecurringSubscription"
++        }
++      ]
++    }
++  ],
++  "version" : {
++    "major" : 3,
++    "minor" : 0
++  }
++}
+ 
+EOF
+)

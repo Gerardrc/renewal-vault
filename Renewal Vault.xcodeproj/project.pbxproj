@@ -1,0 +1,589 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D59064772F4B0A180088A6A3 /* Renewal_VaultApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064762F4B0A180088A6A3 /* Renewal_VaultApp.swift */; };
+		D59064792F4B0A180088A6A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064782F4B0A180088A6A3 /* ContentView.swift */; };
+		D590647B2F4B0A1A0088A6A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D590647A2F4B0A1A0088A6A3 /* Assets.xcassets */; };
+		D590647E2F4B0A1A0088A6A3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D590647D2F4B0A1A0088A6A3 /* Preview Assets.xcassets */; };
+		D59064882F4B0A1A0088A6A3 /* Renewal_VaultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064872F4B0A1A0088A6A3 /* Renewal_VaultTests.swift */; };
+		D59064922F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064912F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift */; };
+		D59064942F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064932F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D59064842F4B0A1A0088A6A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D590646B2F4B0A180088A6A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D59064722F4B0A180088A6A3;
+			remoteInfo = "Renewal Vault";
+		};
+		D590648E2F4B0A1A0088A6A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D590646B2F4B0A180088A6A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D59064722F4B0A180088A6A3;
+			remoteInfo = "Renewal Vault";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		D59064732F4B0A180088A6A3 /* Renewal Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Renewal Vault.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D59064762F4B0A180088A6A3 /* Renewal_VaultApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultApp.swift; sourceTree = "<group>"; };
+		D59064782F4B0A180088A6A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D590647A2F4B0A1A0088A6A3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D590647D2F4B0A1A0088A6A3 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		D59064832F4B0A1A0088A6A3 /* Renewal VaultTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Renewal VaultTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D59064872F4B0A1A0088A6A3 /* Renewal_VaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultTests.swift; sourceTree = "<group>"; };
+		D590648D2F4B0A1A0088A6A3 /* Renewal VaultUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Renewal VaultUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D59064912F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultUITests.swift; sourceTree = "<group>"; };
+		D59064932F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D59064702F4B0A180088A6A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D59064802F4B0A1A0088A6A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D590648A2F4B0A1A0088A6A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D590646A2F4B0A180088A6A3 = {
+			isa = PBXGroup;
+			children = (
+				D59064752F4B0A180088A6A3 /* Renewal Vault */,
+				D59064862F4B0A1A0088A6A3 /* Renewal VaultTests */,
+				D59064902F4B0A1A0088A6A3 /* Renewal VaultUITests */,
+				D59064742F4B0A180088A6A3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D59064742F4B0A180088A6A3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D59064732F4B0A180088A6A3 /* Renewal Vault.app */,
+				D59064832F4B0A1A0088A6A3 /* Renewal VaultTests.xctest */,
+				D590648D2F4B0A1A0088A6A3 /* Renewal VaultUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D59064752F4B0A180088A6A3 /* Renewal Vault */ = {
+			isa = PBXGroup;
+			children = (
+				D59064762F4B0A180088A6A3 /* Renewal_VaultApp.swift */,
+				D59064782F4B0A180088A6A3 /* ContentView.swift */,
+				D590647A2F4B0A1A0088A6A3 /* Assets.xcassets */,
+				D590647C2F4B0A1A0088A6A3 /* Preview Content */,
+			);
+			path = "Renewal Vault";
+			sourceTree = "<group>";
+		};
+		D590647C2F4B0A1A0088A6A3 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				D590647D2F4B0A1A0088A6A3 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		D59064862F4B0A1A0088A6A3 /* Renewal VaultTests */ = {
+			isa = PBXGroup;
+			children = (
+				D59064872F4B0A1A0088A6A3 /* Renewal_VaultTests.swift */,
+			);
+			path = "Renewal VaultTests";
+			sourceTree = "<group>";
+		};
+		D59064902F4B0A1A0088A6A3 /* Renewal VaultUITests */ = {
+			isa = PBXGroup;
+			children = (
+				D59064912F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift */,
+				D59064932F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift */,
+			);
+			path = "Renewal VaultUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D59064722F4B0A180088A6A3 /* Renewal Vault */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D59064972F4B0A1A0088A6A3 /* Build configuration list for PBXNativeTarget "Renewal Vault" */;
+			buildPhases = (
+				D590646F2F4B0A180088A6A3 /* Sources */,
+				D59064702F4B0A180088A6A3 /* Frameworks */,
+				D59064712F4B0A180088A6A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Renewal Vault";
+			productName = "Renewal Vault";
+			productReference = D59064732F4B0A180088A6A3 /* Renewal Vault.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D59064822F4B0A1A0088A6A3 /* Renewal VaultTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D590649A2F4B0A1A0088A6A3 /* Build configuration list for PBXNativeTarget "Renewal VaultTests" */;
+			buildPhases = (
+				D590647F2F4B0A1A0088A6A3 /* Sources */,
+				D59064802F4B0A1A0088A6A3 /* Frameworks */,
+				D59064812F4B0A1A0088A6A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D59064852F4B0A1A0088A6A3 /* PBXTargetDependency */,
+			);
+			name = "Renewal VaultTests";
+			productName = "Renewal VaultTests";
+			productReference = D59064832F4B0A1A0088A6A3 /* Renewal VaultTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D590648C2F4B0A1A0088A6A3 /* Renewal VaultUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D590649D2F4B0A1A0088A6A3 /* Build configuration list for PBXNativeTarget "Renewal VaultUITests" */;
+			buildPhases = (
+				D59064892F4B0A1A0088A6A3 /* Sources */,
+				D590648A2F4B0A1A0088A6A3 /* Frameworks */,
+				D590648B2F4B0A1A0088A6A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D590648F2F4B0A1A0088A6A3 /* PBXTargetDependency */,
+			);
+			name = "Renewal VaultUITests";
+			productName = "Renewal VaultUITests";
+			productReference = D590648D2F4B0A1A0088A6A3 /* Renewal VaultUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D590646B2F4B0A180088A6A3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					D59064722F4B0A180088A6A3 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					D59064822F4B0A1A0088A6A3 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = D59064722F4B0A180088A6A3;
+					};
+					D590648C2F4B0A1A0088A6A3 = {
+						CreatedOnToolsVersion = 15.2;
+						TestTargetID = D59064722F4B0A180088A6A3;
+					};
+				};
+			};
+			buildConfigurationList = D590646E2F4B0A180088A6A3 /* Build configuration list for PBXProject "Renewal Vault" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D590646A2F4B0A180088A6A3;
+			productRefGroup = D59064742F4B0A180088A6A3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D59064722F4B0A180088A6A3 /* Renewal Vault */,
+				D59064822F4B0A1A0088A6A3 /* Renewal VaultTests */,
+				D590648C2F4B0A1A0088A6A3 /* Renewal VaultUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D59064712F4B0A180088A6A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D590647E2F4B0A1A0088A6A3 /* Preview Assets.xcassets in Resources */,
+				D590647B2F4B0A1A0088A6A3 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D59064812F4B0A1A0088A6A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D590648B2F4B0A1A0088A6A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D590646F2F4B0A180088A6A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D59064792F4B0A180088A6A3 /* ContentView.swift in Sources */,
+				D59064772F4B0A180088A6A3 /* Renewal_VaultApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D590647F2F4B0A1A0088A6A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D59064882F4B0A1A0088A6A3 /* Renewal_VaultTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D59064892F4B0A1A0088A6A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D59064942F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift in Sources */,
+				D59064922F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D59064852F4B0A1A0088A6A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D59064722F4B0A180088A6A3 /* Renewal Vault */;
+			targetProxy = D59064842F4B0A1A0088A6A3 /* PBXContainerItemProxy */;
+		};
+		D590648F2F4B0A1A0088A6A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D59064722F4B0A180088A6A3 /* Renewal Vault */;
+			targetProxy = D590648E2F4B0A1A0088A6A3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D59064952F4B0A1A0088A6A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D59064962F4B0A1A0088A6A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D59064982F4B0A1A0088A6A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Renewal Vault/Preview Content\"";
+				DEVELOPMENT_TEAM = BQNVQAKU5V;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anager.Renewal-Vault";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D59064992F4B0A1A0088A6A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Renewal Vault/Preview Content\"";
+				DEVELOPMENT_TEAM = BQNVQAKU5V;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anager.Renewal-Vault";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D590649B2F4B0A1A0088A6A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anager.Renewal-VaultTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Renewal Vault.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Renewal Vault";
+			};
+			name = Debug;
+		};
+		D590649C2F4B0A1A0088A6A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anager.Renewal-VaultTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Renewal Vault.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Renewal Vault";
+			};
+			name = Release;
+		};
+		D590649E2F4B0A1A0088A6A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anager.Renewal-VaultUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Renewal Vault";
+			};
+			name = Debug;
+		};
+		D590649F2F4B0A1A0088A6A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "anager.Renewal-VaultUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Renewal Vault";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D590646E2F4B0A180088A6A3 /* Build configuration list for PBXProject "Renewal Vault" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D59064952F4B0A1A0088A6A3 /* Debug */,
+				D59064962F4B0A1A0088A6A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D59064972F4B0A1A0088A6A3 /* Build configuration list for PBXNativeTarget "Renewal Vault" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D59064982F4B0A1A0088A6A3 /* Debug */,
+				D59064992F4B0A1A0088A6A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D590649A2F4B0A1A0088A6A3 /* Build configuration list for PBXNativeTarget "Renewal VaultTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D590649B2F4B0A1A0088A6A3 /* Debug */,
+				D590649C2F4B0A1A0088A6A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D590649D2F4B0A1A0088A6A3 /* Build configuration list for PBXNativeTarget "Renewal VaultUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D590649E2F4B0A1A0088A6A3 /* Debug */,
+				D590649F2F4B0A1A0088A6A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D590646B2F4B0A180088A6A3 /* Project object */;
+}
