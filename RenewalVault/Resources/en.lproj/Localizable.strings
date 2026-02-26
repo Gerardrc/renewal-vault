@@ -110,3 +110,7 @@
 "calendar.add_success" = "Added to Calendar.";
 "calendar.add_failed" = "Could not add to Calendar.";
 "calendar.access_denied" = "Calendar access denied. Please allow access in Settings.";
+
+"common.close" = "Close";
+"common.go_to_settings" = "Go to Settings";
+"calendar.access_denied_title" = "Calendar Access Needed";

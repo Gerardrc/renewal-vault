@@ -98,6 +98,25 @@ final class RenewalVaultTests: XCTestCase {
     }
 
     @MainActor
+    func testLanguageChosenFlagPersistsFirstLaunchGate() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: AppState.languageChosenKey)
+        let state = AppState()
+        state.setLanguageChosen()
+        XCTAssertTrue(defaults.bool(forKey: AppState.languageChosenKey))
+    }
+
+    @MainActor
+    func testInitialPermissionRequestOnlyOnceFlag() {
+        let defaults = UserDefaults.standard
+        defaults.set(false, forKey: AppState.initialPermissionsRequestedKey)
+        let state = AppState()
+        XCTAssertTrue(state.shouldRequestInitialPermissions())
+        defaults.set(true, forKey: AppState.initialPermissionsRequestedKey)
+        XCTAssertFalse(state.shouldRequestInitialPermissions())
+    }
+
+    @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()
         manager.setLanguage(.es)
