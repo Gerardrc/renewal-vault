@@ -1,5 +1,5 @@
 import XCTest
-@testable import RenewalVault
+@testable import Renewal_Vault
 
 final class RenewalVaultTests: XCTestCase {
     func testGroupingLogic() {
