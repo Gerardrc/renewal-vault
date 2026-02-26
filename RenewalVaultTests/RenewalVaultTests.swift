@@ -117,7 +117,8 @@ final class RenewalVaultTests: XCTestCase {
     }
 
     func testPriceFormattingAndParsing() {
-        XCTAssertEqual(PriceFormatter.text(amount: 12.5, currency: "€"), "€12.5")
+        XCTAssertEqual(PriceFormatter.text(amount: 12.5, currency: "€"), "€12.50")
+        XCTAssertEqual(PriceFormatter.text(amount: 12.5, currency: nil), "€12.50")
         XCTAssertEqual(PriceFormatter.parseAmount(" 19,99 "), 19.99)
         XCTAssertNil(PriceFormatter.text(amount: nil, currency: "$"))
     }
@@ -134,8 +135,37 @@ final class RenewalVaultTests: XCTestCase {
         let priced = Item(title: "Plan", category: "subscription", expiryDate: .now, priceAmount: 29.99, priceCurrency: "€", vault: vault)
         let noPrice = Item(title: "Doc", category: "passport", expiryDate: .now, vault: vault)
 
+        let pricedWithoutCurrency = Item(title: "Plan2", category: "subscription", expiryDate: .now, priceAmount: 11.0, priceCurrency: nil, vault: vault)
+
         XCTAssertEqual(HomeView.subtitleText(for: priced), "€29.99")
+        XCTAssertEqual(HomeView.subtitleText(for: pricedWithoutCurrency), "€11.00")
         XCTAssertEqual(HomeView.subtitleText(for: noPrice), "Personal")
+    }
+
+
+
+    @MainActor
+    func testInitialPermissionsCallsNotificationThenCalendar() async {
+        let defaults = UserDefaults.standard
+        defaults.set(false, forKey: AppState.initialPermissionsRequestedKey)
+
+        let state = AppState()
+        var calls: [String] = []
+
+        await state.requestInitialPermissions(
+            requestNotifications: {
+                calls.append("notification")
+                return true
+            },
+            requestCalendar: {
+                calls.append("calendar")
+                return true
+            },
+            sleepNanoseconds: { _ in }
+        )
+
+        XCTAssertEqual(calls, ["notification", "calendar"])
+        XCTAssertTrue(defaults.bool(forKey: AppState.initialPermissionsRequestedKey))
     }
 
     @MainActor

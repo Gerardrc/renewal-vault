@@ -111,7 +111,6 @@ struct HomeView: View {
             }
         }
     }
-    
 
     static func subtitleText(for item: Item) -> String {
         item.formattedPriceText ?? item.vault?.name ?? "-"

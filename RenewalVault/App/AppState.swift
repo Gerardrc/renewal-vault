@@ -52,7 +52,9 @@ final class AppState: ObservableObject {
     func finishOnboarding() {
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
         hasCompletedOnboarding = true
-        Task { await requestFirstRunPermissionsIfNeeded() }
+        Task {
+            await requestFirstRunPermissionsIfNeeded()
+        }
     }
 
     func resetOnboarding() {
@@ -70,11 +72,23 @@ final class AppState: ObservableObject {
     }
 
     func requestFirstRunPermissionsIfNeeded() async {
+        await requestInitialPermissions(
+            requestNotifications: { await NotificationService.shared.requestPermission() },
+            requestCalendar: { try? await CalendarEventService.shared.requestCalendarAccessIfNeeded() },
+            sleepNanoseconds: { try? await Task.sleep(nanoseconds: $0) }
+        )
+    }
+
+    func requestInitialPermissions(
+        requestNotifications: () async -> Bool,
+        requestCalendar: () async -> Bool?,
+        sleepNanoseconds: (UInt64) async -> Void
+    ) async {
         guard shouldRequestInitialPermissions() else { return }
         UserDefaults.standard.set(true, forKey: Self.initialPermissionsRequestedKey)
 
-        _ = await NotificationService.shared.requestPermission()
-        try? await Task.sleep(nanoseconds: 400_000_000)
-        _ = try? await CalendarEventService.shared.requestCalendarAccess()
+        _ = await requestNotifications()
+        await sleepNanoseconds(400_000_000)
+        _ = await requestCalendar()
     }
 }
