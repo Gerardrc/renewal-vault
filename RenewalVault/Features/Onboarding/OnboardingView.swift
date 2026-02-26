@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject private var appState: AppState
     @State private var page = 0
+    @State private var showPermissionPrimer = false
 
     private let pages: [(title: String, icon: String)] = [
         ("onboard.track", "calendar.badge.clock"),
@@ -18,7 +19,7 @@ struct OnboardingView: View {
             HStack {
                 Spacer()
                 if !isLastPage {
-                    Button("common.skip".localized) { appState.finishOnboarding() }
+                    Button("common.skip".localized) { completeFlow() }
                 }
             }
             .padding([.top, .horizontal])
@@ -42,7 +43,7 @@ struct OnboardingView: View {
                 Spacer()
                 if isLastPage {
                     Button("onboard.get_started".localized) {
-                        appState.finishOnboarding()
+                        completeFlow()
                     }
                     .buttonStyle(.borderedProminent)
                 } else {
@@ -53,6 +54,19 @@ struct OnboardingView: View {
                 }
             }
             .padding()
+        }
+        .alert("permissions.title".localized, isPresented: $showPermissionPrimer) {
+            Button("common.continue".localized) { appState.finishOnboarding() }
+        } message: {
+            Text("permissions.body".localized)
+        }
+    }
+
+    private func completeFlow() {
+        if appState.shouldRequestInitialPermissions() {
+            showPermissionPrimer = true
+        } else {
+            appState.finishOnboarding()
         }
     }
 }

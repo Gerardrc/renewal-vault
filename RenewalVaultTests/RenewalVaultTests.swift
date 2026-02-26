@@ -116,6 +116,19 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertFalse(state.shouldRequestInitialPermissions())
     }
 
+    func testPriceFormattingAndParsing() {
+        XCTAssertEqual(PriceFormatter.text(amount: 12.5, currency: "€"), "€12.5")
+        XCTAssertEqual(PriceFormatter.parseAmount(" 19,99 "), 19.99)
+        XCTAssertNil(PriceFormatter.text(amount: nil, currency: "$"))
+    }
+
+    func testItemPricePersistenceFields() {
+        let item = Item(title: "Netflix", category: "subscription", expiryDate: .now, priceAmount: 9.99, priceCurrency: "$")
+        XCTAssertEqual(item.priceAmount, 9.99)
+        XCTAssertEqual(item.priceCurrency, "$")
+        XCTAssertEqual(item.formattedPriceText, "$9.99")
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()

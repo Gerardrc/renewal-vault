@@ -36,6 +36,7 @@
 		D56F08E42F5055AC001B7216 /* ReminderDayOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56F08E32F5055AC001B7216 /* ReminderDayOptions.swift */; };
 		D59064922F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064912F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift */; };
 		D59064942F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064932F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift */; };
+		D5FB6BA42F5092F3004EEC88 /* PriceFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5FB6BA32F5092F3004EEC88 /* PriceFormatter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,6 +99,7 @@
 		D590648D2F4B0A1A0088A6A3 /* Renewal VaultUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Renewal VaultUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D59064912F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultUITests.swift; sourceTree = "<group>"; };
 		D59064932F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		D5FB6BA32F5092F3004EEC88 /* PriceFormatter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PriceFormatter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -170,6 +172,7 @@
 		D53C23672F4CD7DA0001BCCA /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				D5FB6BA32F5092F3004EEC88 /* PriceFormatter.swift */,
 				D56E8A7E2F506AE400D117FF /* CalendarEventService.swift */,
 				D56F08E32F5055AC001B7216 /* ReminderDayOptions.swift */,
 				D53C23682F4CD7DA0001BCCA /* .gitkeep */,
@@ -566,6 +569,7 @@
 				D53C23AC2F4CD7DB0001BCCA /* LanguagePickerView.swift in Sources */,
 				D53C23A02F4CD7DB0001BCCA /* ReminderScheduler.swift in Sources */,
 				D53C23B32F4CD7DB0001BCCA /* OnboardingView.swift in Sources */,
+				D5FB6BA42F5092F3004EEC88 /* PriceFormatter.swift in Sources */,
 				D53C23AF2F4CD7DB0001BCCA /* VaultListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -74,6 +74,7 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(true, forKey: Self.initialPermissionsRequestedKey)
 
         _ = await NotificationService.shared.requestPermission()
+        try? await Task.sleep(nanoseconds: 400_000_000)
         _ = try? await CalendarEventService.shared.requestCalendarAccess()
     }
 }
