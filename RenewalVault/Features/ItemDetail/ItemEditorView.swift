@@ -59,13 +59,14 @@ struct ItemEditorView: View {
                 TextField("item.price_amount".localized, text: $priceAmountText)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                Picker("item.price_currency".localized, selection: $priceCurrency) {
+                Menu {
                     ForEach(CurrencySymbol.allCases) { currency in
-                        Text(currency.rawValue).tag(currency.rawValue)
+                        Button(currency.rawValue) { priceCurrency = currency.rawValue }
                     }
+                } label: {
+                    Text(priceCurrency)
+                        .frame(minWidth: 24)
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: 68)
             }
 
             TextField("item.notes".localized, text: $notes, axis: .vertical)
