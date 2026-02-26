@@ -15,6 +15,8 @@ struct ItemEditorView: View {
     @State private var category = ItemCategory.passport.rawValue
     @State private var issuer = ""
     @State private var expiryDate = Date().addingTimeInterval(60*60*24*30)
+    @State private var priceAmountText = ""
+    @State private var priceCurrency = CurrencySymbol.euro.rawValue
     @State private var notes = ""
     @State private var reminderDays: [Int] = []
     @State private var selectedVaultID: UUID?
@@ -50,6 +52,22 @@ struct ItemEditorView: View {
             }
             TextField("item.issuer".localized, text: $issuer)
             DatePicker("item.expiry".localized, selection: $expiryDate, displayedComponents: .date)
+
+            HStack(spacing: 8) {
+                Text("item.price".localized)
+                    .frame(width: 56, alignment: .leading)
+                TextField("item.price_amount".localized, text: $priceAmountText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                Picker("item.price_currency".localized, selection: $priceCurrency) {
+                    ForEach(CurrencySymbol.allCases) { currency in
+                        Text(currency.rawValue).tag(currency.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: 68)
+            }
+
             TextField("item.notes".localized, text: $notes, axis: .vertical)
             ReminderEditorView(reminderDays: $reminderDays)
 
@@ -142,6 +160,8 @@ struct ItemEditorView: View {
             selectedVaultID = vaults.first?.id
             reminderDays = []
             pendingAttachments = []
+            priceAmountText = ""
+            priceCurrency = CurrencySymbol.euro.rawValue
             return
         }
         title = item.title
@@ -152,6 +172,12 @@ struct ItemEditorView: View {
         reminderDays = ReminderDayOptions.normalized(item.reminderScheduleDays)
         selectedVaultID = item.vault?.id ?? vaults.first?.id
         pendingAttachments = []
+        if let amount = item.priceAmount {
+            priceAmountText = String(amount)
+        } else {
+            priceAmountText = ""
+        }
+        priceCurrency = item.priceCurrency ?? CurrencySymbol.euro.rawValue
     }
 
     private func save() {
@@ -159,19 +185,24 @@ struct ItemEditorView: View {
         if item == nil && !FeatureGate.canCreateItem(currentCount: items.count, tier: entitlement.isPro ? .pro : .free) { return }
         let normalized = ReminderDayOptions.normalized(reminderDays)
         let selectedVault = vaults.first(where: { $0.id == selectedVaultID }) ?? vaults.first
+        let parsedAmount = PriceFormatter.parseAmount(priceAmountText)
+        let finalPriceAmount = parsedAmount
+        let finalPriceCurrency = parsedAmount == nil ? nil : priceCurrency
 
         if let item {
             item.title = title
             item.category = category
             item.issuer = issuer.isEmpty ? nil : issuer
             item.expiryDate = expiryDate
+            item.priceAmount = finalPriceAmount
+            item.priceCurrency = finalPriceCurrency
             item.notes = notes
             item.reminderScheduleDays = normalized
             item.vault = selectedVault
             item.updatedAt = .now
             Task { await NotificationService.shared.reschedule(item: item) }
         } else {
-            let new = Item(title: title, category: category, issuer: issuer.isEmpty ? nil : issuer, expiryDate: expiryDate, reminderScheduleDays: normalized, notes: notes, vault: selectedVault)
+            let new = Item(title: title, category: category, issuer: issuer.isEmpty ? nil : issuer, expiryDate: expiryDate, reminderScheduleDays: normalized, notes: notes, priceAmount: finalPriceAmount, priceCurrency: finalPriceCurrency, vault: selectedVault)
             modelContext.insert(new)
             for draft in pendingAttachments {
                 let attachment = Attachment(kind: draft.kind, filename: draft.filename, localPath: draft.localPath, item: new)

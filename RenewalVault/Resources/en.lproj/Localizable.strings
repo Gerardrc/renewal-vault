@@ -114,3 +114,10 @@
 "common.close" = "Close";
 "common.go_to_settings" = "Go to Settings";
 "calendar.access_denied_title" = "Calendar Access Needed";
+
+"common.continue" = "Continue";
+"permissions.title" = "Before we continue";
+"permissions.body" = "We will ask for Notifications and Calendar access to remind you about upcoming renewals.";
+"item.price" = "Price";
+"item.price_amount" = "Amount";
+"item.price_currency" = "Currency";

@@ -1,11 +1,12 @@
 import Foundation
 import EventKit
 
-struct CalendarEventService {
+final class CalendarEventService {
     static let shared = CalendarEventService()
+    private let store = EKEventStore()
 
+    @MainActor
     func requestCalendarAccess() async throws -> Bool {
-        let store = EKEventStore()
         if #available(iOS 17.0, *) {
             return try await store.requestFullAccessToEvents()
         } else {
@@ -21,13 +22,10 @@ struct CalendarEventService {
         }
     }
 
+    @MainActor
     func addExpiryEvent(for item: Item) async throws {
-        let store = EKEventStore()
         let granted = try await requestCalendarAccess()
-
-        guard granted else {
-            throw CalendarEventError.accessDenied
-        }
+        guard granted else { throw CalendarEventError.accessDenied }
 
         let event = EKEvent(eventStore: store)
         event.title = item.title

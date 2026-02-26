@@ -30,6 +30,8 @@ final class Item {
     var repeatAfterRenewal: Bool
     var isCompleted: Bool
     var notes: String
+    var priceAmount: Double?
+    var priceCurrency: String?
     var createdAt: Date
     var updatedAt: Date
     var scheduledNotificationIdentifiers: [String]
@@ -48,6 +50,8 @@ final class Item {
         repeatAfterRenewal: Bool = true,
         isCompleted: Bool = false,
         notes: String = "",
+        priceAmount: Double? = nil,
+        priceCurrency: String? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now,
         scheduledNotificationIdentifiers: [String] = [],
@@ -62,6 +66,8 @@ final class Item {
         self.repeatAfterRenewal = repeatAfterRenewal
         self.isCompleted = isCompleted
         self.notes = notes
+        self.priceAmount = priceAmount
+        self.priceCurrency = priceCurrency
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.scheduledNotificationIdentifiers = scheduledNotificationIdentifiers
@@ -153,5 +159,12 @@ extension Item {
 extension Vault {
     var isProtectedDefault: Bool {
         isSystemDefault || name.caseInsensitiveCompare("Personal") == .orderedSame
+    }
+}
+
+
+extension Item {
+    var formattedPriceText: String? {
+        PriceFormatter.text(amount: priceAmount, currency: priceCurrency)
     }
 }
