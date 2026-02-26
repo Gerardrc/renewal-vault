@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
+    @EnvironmentObject private var appState: AppState
     @Query(sort: \Item.expiryDate) private var items: [Item]
     @Query(sort: \Vault.name) private var vaults: [Vault]
     @State private var query = ""
@@ -9,6 +10,8 @@ struct HomeView: View {
     @State private var categoryFilter = ""
     @State private var upcomingOnly = false
     @State private var showCompleted = false
+    @State private var calendarAlertMessage = ""
+    @State private var showCalendarAlert = false
 
     private var filtered: [Item] {
         items.filter { item in
@@ -58,6 +61,11 @@ struct HomeView: View {
                 Label("common.add".localized, systemImage: "plus")
             }
         }
+        .alert("common.notice".localized, isPresented: $showCalendarAlert) {
+            Button("common.ok".localized, role: .cancel) {}
+        } message: {
+            Text(calendarAlertMessage)
+        }
     }
 
     @ViewBuilder
@@ -65,23 +73,52 @@ struct HomeView: View {
         let sectionItems = filtered.filter { ReminderScheduler.bucket(for: $0) == bucket }
         if !sectionItems.isEmpty {
             Section(title) {
-                ForEach(sectionItems) { item in
-                    NavigationLink(destination: ItemDetailView(item: item)) {
-                        VStack(alignment: .leading) {
-                            HStack {
-                                Text(item.title).font(.headline)
-                                if item.isCompleted {
-                                    Text("item.completed_badge".localized)
-                                        .font(.caption2)
-                                        .padding(4)
-                                        .background(.gray.opacity(0.2), in: Capsule())
+                ForEach(sectionItems.indices, id: \.self) { index in
+                    HStack(spacing: 12) {
+                        NavigationLink(destination: ItemDetailView(item: sectionItems[index])) {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text(sectionItems[index].title)
+                                        .font(.headline)
+
+                                    if sectionItems[index].isCompleted {
+                                        Text("item.completed_badge".localized)
+                                            .font(.caption2)
+                                            .padding(4)
+                                            .background(.gray.opacity(0.2), in: Capsule())
+                                    }
                                 }
+
+                                Text(sectionItems[index].vault?.name ?? "-") +
+                                Text(" · \(sectionItems[index].expiryDate.formatted(date: .abbreviated, time: .omitted))")
                             }
-                            Text(item.vault?.name ?? "-") + Text(" · \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))")
                         }
+
+                        Spacer(minLength: 4)
+
+                        Button {
+                            Task { await addToCalendar(item: sectionItems[index]) }
+                        } label: {
+                            Image(systemName: "calendar.badge.plus")
+                                .foregroundColor(.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("home.add_to_calendar".localized)
                     }
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func addToCalendar(item: Item) async {
+        do {
+            try await CalendarEventService.shared.addExpiryEvent(for: item)
+            calendarAlertMessage = "calendar.add_success".localized
+            showCalendarAlert = true
+        } catch {
+            calendarAlertMessage = (error as? CalendarEventError)?.localizedDescription ?? "calendar.add_failed".localized
+            showCalendarAlert = true
         }
     }
 }

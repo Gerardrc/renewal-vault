@@ -91,6 +91,12 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertEqual(ReminderDayOptions.parseCustom(" 15 "), 15)
     }
 
+    func testReminderAvailableDaysKeepsCustomVisible() {
+        let values = ReminderDayOptions.availableDays(selected: [45], customAvailable: [45])
+        XCTAssertTrue(values.contains(45))
+        XCTAssertTrue(values.contains(90))
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()

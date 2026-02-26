@@ -77,10 +77,10 @@ index 42ffffb4efc41c22dd898e75f340b4ff004f368c..1c3c19ea092c8913d97b2a9c2141ca9f
 +- Item add/edit now includes Vault picker so items can be moved between vaults.
 diff --git a/RenewalVault/App/AppState.swift b/RenewalVault/App/AppState.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..45ed480961bf68c0d3cc0f81b6e3945791985a8d
+index 0000000000000000000000000000000000000000..a2ae71c0ae671e67b13f78a2b1cae9cc3bf4a818
 --- /dev/null
 +++ b/RenewalVault/App/AppState.swift
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,53 @@
 +import Foundation
 +import SwiftData
 +
@@ -103,19 +103,22 @@ index 0000000000000000000000000000000000000000..45ed480961bf68c0d3cc0f81b6e39457
 +
 +        do {
 +            let descriptor = FetchDescriptor<Vault>()
-+            let count = try modelContext.fetchCount(descriptor)
-+            if count == 0 {
-+                modelContext.insert(Vault(name: "Personal"))
++            let vaults = try modelContext.fetch(descriptor)
++            if vaults.isEmpty {
++                modelContext.insert(Vault(name: "Personal", isSystemDefault: true))
 +                try modelContext.save()
++            } else if !vaults.contains(where: { $0.isProtectedDefault }) {
++                if let personal = vaults.first(where: { $0.name.caseInsensitiveCompare("Personal") == .orderedSame }) ?? vaults.first {
++                    personal.isSystemDefault = true
++                    try modelContext.save()
++                }
 +            }
 +        } catch {
 +            assertionFailure("Failed initial bootstrap")
 +        }
 +    }
 +
-+    func setLanguageChosen() {
-+        hasChosenLanguage = true
-+    }
++    func setLanguageChosen() { hasChosenLanguage = true }
 +
 +    func finishOnboarding() {
 +        UserDefaults.standard.set(true, forKey: onboardingKey)
@@ -224,10 +227,10 @@ index 0000000000000000000000000000000000000000..404e0c115e59ab38fc715a9d24ab123c
 +}
 diff --git a/RenewalVault/Core/Domain/Models.swift b/RenewalVault/Core/Domain/Models.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..f002418682c50ef8defbd0e9ff4e4dc2114cd444
+index 0000000000000000000000000000000000000000..52427f49541dcd64f80381007174167b0ac15b5d
 --- /dev/null
 +++ b/RenewalVault/Core/Domain/Models.swift
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,157 @@
 +import Foundation
 +import SwiftData
 +
@@ -237,13 +240,15 @@ index 0000000000000000000000000000000000000000..f002418682c50ef8defbd0e9ff4e4dc2
 +    var name: String
 +    var createdAt: Date
 +    var updatedAt: Date
++    var isSystemDefault: Bool
 +    @Relationship(deleteRule: .cascade, inverse: \Item.vault) var items: [Item] = []
 +
-+    init(id: UUID = UUID(), name: String, createdAt: Date = .now, updatedAt: Date = .now) {
++    init(id: UUID = UUID(), name: String, createdAt: Date = .now, updatedAt: Date = .now, isSystemDefault: Bool = false) {
 +        self.id = id
 +        self.name = name
 +        self.createdAt = createdAt
 +        self.updatedAt = updatedAt
++        self.isSystemDefault = isSystemDefault
 +    }
 +}
 +
@@ -374,6 +379,13 @@ index 0000000000000000000000000000000000000000..f002418682c50ef8defbd0e9ff4e4dc2
 +        isCompleted = false
 +        repeatAfterRenewal = true
 +        updatedAt = .now
++    }
++}
++
++
++extension Vault {
++    var isProtectedDefault: Bool {
++        isSystemDefault || name.caseInsensitiveCompare("Personal") == .orderedSame
 +    }
 +}
 diff --git a/RenewalVault/Core/Localization/LanguageManager.swift b/RenewalVault/Core/Localization/LanguageManager.swift
@@ -727,16 +739,109 @@ index 0000000000000000000000000000000000000000..35636d609d460feccdf2676711c0b1ef
 +++ b/RenewalVault/Core/Utilities/.gitkeep
 @@ -0,0 +1 @@
 +# Keep directory in git
+diff --git a/RenewalVault/Core/Utilities/CalendarEventService.swift b/RenewalVault/Core/Utilities/CalendarEventService.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..2f6dab8f1984276901cc35e44140e081ce41e4d4
+--- /dev/null
++++ b/RenewalVault/Core/Utilities/CalendarEventService.swift
+@@ -0,0 +1,55 @@
++import Foundation
++import EventKit
++
++struct CalendarEventService {
++    static let shared = CalendarEventService()
++
++    func addExpiryEvent(for item: Item) async throws {
++        let store = EKEventStore()
++        let granted: Bool
++        if #available(iOS 17.0, *) {
++            granted = try await store.requestFullAccessToEvents()
++        } else {
++            granted = try await withCheckedThrowingContinuation { continuation in
++                store.requestAccess(to: .event) { ok, error in
++                    if let error {
++                        continuation.resume(throwing: error)
++                    } else {
++                        continuation.resume(returning: ok)
++                    }
++                }
++            }
++        }
++
++        guard granted else {
++            throw CalendarEventError.accessDenied
++        }
++
++        let event = EKEvent(eventStore: store)
++        event.title = item.title
++        event.notes = [
++            "\("item.category".localized): \("category.\(item.category)".localized)",
++            item.issuer.map { "\("item.issuer".localized): \($0)" } ?? "",
++            item.notes.isEmpty ? "" : item.notes
++        ]
++        .filter { !$0.isEmpty }
++        .joined(separator: "\n")
++
++        let start = Calendar.current.startOfDay(for: item.expiryDate)
++        event.startDate = start
++        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
++        event.calendar = store.defaultCalendarForNewEvents
++
++        try store.save(event, span: .thisEvent, commit: true)
++    }
++}
++
++enum CalendarEventError: LocalizedError {
++    case accessDenied
++
++    var errorDescription: String? {
++        switch self {
++        case .accessDenied: return "calendar.access_denied".localized
++        }
++    }
++}
+diff --git a/RenewalVault/Core/Utilities/ReminderDayOptions.swift b/RenewalVault/Core/Utilities/ReminderDayOptions.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..681f8f92854005fa32687463b6ac030726704e1f
+--- /dev/null
++++ b/RenewalVault/Core/Utilities/ReminderDayOptions.swift
+@@ -0,0 +1,25 @@
++import Foundation
++
++enum ReminderDayOptions {
++    static let presets = [90, 60, 30, 14, 7, 1]
++
++    static func normalized(_ days: [Int]) -> [Int] {
++        Array(Set(days.filter { $0 >= 1 })).sorted(by: >)
++    }
++
++    static func availableDays(selected: [Int], customAvailable: [Int]) -> [Int] {
++        normalized(presets + selected + customAvailable)
++    }
++
++    static func toggle(day: Int, selected: [Int]) -> [Int] {
++        var values = Set(selected)
++        if values.contains(day) { values.remove(day) } else { values.insert(day) }
++        return Array(values).sorted(by: >)
++    }
++
++    static func parseCustom(_ text: String) -> Int? {
++        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
++        guard let value = Int(trimmed), value >= 1 else { return nil }
++        return value
++    }
++}
 diff --git a/RenewalVault/Features/Home/HomeView.swift b/RenewalVault/Features/Home/HomeView.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..cfdf3832b1d0bb92e90e5ee50e2434b64c317340
+index 0000000000000000000000000000000000000000..38cce122ce8aaf2539b2d4533b10fbf336911553
 --- /dev/null
 +++ b/RenewalVault/Features/Home/HomeView.swift
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,118 @@
 +import SwiftUI
 +import SwiftData
 +
 +struct HomeView: View {
++    @EnvironmentObject private var appState: AppState
 +    @Query(sort: \Item.expiryDate) private var items: [Item]
 +    @Query(sort: \Vault.name) private var vaults: [Vault]
 +    @State private var query = ""
@@ -744,6 +849,8 @@ index 0000000000000000000000000000000000000000..cfdf3832b1d0bb92e90e5ee50e2434b6
 +    @State private var categoryFilter = ""
 +    @State private var upcomingOnly = false
 +    @State private var showCompleted = false
++    @State private var calendarAlertMessage = ""
++    @State private var showCalendarAlert = false
 +
 +    private var filtered: [Item] {
 +        items.filter { item in
@@ -793,6 +900,11 @@ index 0000000000000000000000000000000000000000..cfdf3832b1d0bb92e90e5ee50e2434b6
 +                Label("common.add".localized, systemImage: "plus")
 +            }
 +        }
++        .alert("common.notice".localized, isPresented: $showCalendarAlert) {
++            Button("common.ok".localized, role: .cancel) {}
++        } message: {
++            Text(calendarAlertMessage)
++        }
 +    }
 +
 +    @ViewBuilder
@@ -801,22 +913,45 @@ index 0000000000000000000000000000000000000000..cfdf3832b1d0bb92e90e5ee50e2434b6
 +        if !sectionItems.isEmpty {
 +            Section(title) {
 +                ForEach(sectionItems) { item in
-+                    NavigationLink(destination: ItemDetailView(item: item)) {
-+                        VStack(alignment: .leading) {
-+                            HStack {
-+                                Text(item.title).font(.headline)
-+                                if item.isCompleted {
-+                                    Text("item.completed_badge".localized)
-+                                        .font(.caption2)
-+                                        .padding(4)
-+                                        .background(.gray.opacity(0.2), in: Capsule())
++                    HStack(spacing: 12) {
++                        NavigationLink(destination: ItemDetailView(item: item)) {
++                            VStack(alignment: .leading) {
++                                HStack {
++                                    Text(item.title).font(.headline)
++                                    if item.isCompleted {
++                                        Text("item.completed_badge".localized)
++                                            .font(.caption2)
++                                            .padding(4)
++                                            .background(.gray.opacity(0.2), in: Capsule())
++                                    }
 +                                }
++                                Text(item.vault?.name ?? "-") + Text(" · \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))")
 +                            }
-+                            Text(item.vault?.name ?? "-") + Text(" · \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))")
 +                        }
++                        Spacer(minLength: 4)
++                        Button {
++                            Task { await addToCalendar(item: item) }
++                        } label: {
++                            Image(systemName: "calendar.badge.plus")
++                                .foregroundStyle(.accent)
++                        }
++                        .buttonStyle(.plain)
++                        .accessibilityLabel("home.add_to_calendar".localized)
 +                    }
 +                }
 +            }
++        }
++    }
++
++    @MainActor
++    private func addToCalendar(item: Item) async {
++        do {
++            try await CalendarEventService.shared.addExpiryEvent(for: item)
++            calendarAlertMessage = "calendar.add_success".localized
++            showCalendarAlert = true
++        } catch {
++            calendarAlertMessage = (error as? CalendarEventError)?.localizedDescription ?? "calendar.add_failed".localized
++            showCalendarAlert = true
 +        }
 +    }
 +}
@@ -990,12 +1125,14 @@ index 0000000000000000000000000000000000000000..9af90922c2891e23d748d78a02d21f51
 +}
 diff --git a/RenewalVault/Features/ItemDetail/ItemEditorView.swift b/RenewalVault/Features/ItemDetail/ItemEditorView.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..e6500b76275acb4c5e9437ac8b53cd328f8dc4e3
+index 0000000000000000000000000000000000000000..cc0d0d60e3a63f4841975e60e782fd881ab14f1e
 --- /dev/null
 +++ b/RenewalVault/Features/ItemDetail/ItemEditorView.swift
-@@ -0,0 +1,134 @@
+@@ -0,0 +1,275 @@
 +import SwiftUI
 +import SwiftData
++import PhotosUI
++import UniformTypeIdentifiers
 +
 +struct ItemEditorView: View {
 +    @Environment(\.modelContext) private var modelContext
@@ -1010,8 +1147,23 @@ index 0000000000000000000000000000000000000000..e6500b76275acb4c5e9437ac8b53cd32
 +    @State private var issuer = ""
 +    @State private var expiryDate = Date().addingTimeInterval(60*60*24*30)
 +    @State private var notes = ""
-+    @State private var reminderDays = [30,14,7,1]
++    @State private var reminderDays: [Int] = []
 +    @State private var selectedVaultID: UUID?
++    @State private var selectedPhotoItem: PhotosPickerItem?
++    @State private var showingFileImporter = false
++    @State private var showingAttachmentLimitAlert = false
++    @State private var pendingAttachments: [DraftAttachment] = []
++
++    private struct DraftAttachment: Identifiable {
++        let id = UUID()
++        let kind: String
++        let filename: String
++        let localPath: String
++    }
++
++    private var attachmentCount: Int {
++        (item?.attachments.count ?? 0) + pendingAttachments.count
++    }
 +
 +    var body: some View {
 +        Form {
@@ -1031,17 +1183,96 @@ index 0000000000000000000000000000000000000000..e6500b76275acb4c5e9437ac8b53cd32
 +            DatePicker("item.expiry".localized, selection: $expiryDate, displayedComponents: .date)
 +            TextField("item.notes".localized, text: $notes, axis: .vertical)
 +            ReminderEditorView(reminderDays: $reminderDays)
++
++            Section("item.attachments".localized) {
++                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
++                    Label("attachment.add_photo".localized, systemImage: "photo")
++                }
++
++                Button {
++                    showingFileImporter = true
++                } label: {
++                    Label("attachment.add_file".localized, systemImage: "doc")
++                }
++
++                if let item {
++                    ForEach(item.attachments) { attachment in
++                        Text("\(attachment.kind.uppercased()): \(attachment.filename)")
++                    }
++                }
++
++                ForEach(pendingAttachments) { draft in
++                    Text("\(draft.kind.uppercased()): \(draft.filename)")
++                }
++            }
 +        }
 +        .navigationTitle(item == nil ? "item.add".localized : "item.edit".localized)
 +        .toolbar {
 +            Button("common.save".localized) { save() }
 +        }
++        .alert("common.notice".localized, isPresented: $showingAttachmentLimitAlert) {
++            Button("common.ok".localized, role: .cancel) {}
++        } message: {
++            Text("attachment.upgrade_required".localized)
++        }
++        .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.pdf, .data], allowsMultipleSelection: false) { result in
++            guard canAddAttachment() else {
++                showingAttachmentLimitAlert = true
++                return
++            }
++            guard case .success(let urls) = result, let url = urls.first else { return }
++            importFile(url)
++        }
++        .onChange(of: selectedPhotoItem) { newValue in
++            guard let newValue else { return }
++            guard canAddAttachment() else {
++                showingAttachmentLimitAlert = true
++                return
++            }
++            Task { await importPhoto(newValue) }
++        }
 +        .onAppear { load() }
++    }
++
++    private func canAddAttachment() -> Bool {
++        FeatureGate.canAddAttachment(currentCount: attachmentCount, tier: entitlement.isPro ? .pro : .free)
++    }
++
++    private func importFile(_ url: URL) {
++        guard let data = try? Data(contentsOf: url) else { return }
++        let ext = url.pathExtension.isEmpty ? "pdf" : url.pathExtension
++        guard let localPath = try? AttachmentStorage.shared.save(data: data, fileExtension: ext) else { return }
++
++        if let item {
++            let attachment = Attachment(kind: "pdf", filename: url.lastPathComponent, localPath: localPath, item: item)
++            modelContext.insert(attachment)
++            item.attachments.append(attachment)
++            try? modelContext.save()
++        } else {
++            pendingAttachments.append(DraftAttachment(kind: "pdf", filename: url.lastPathComponent, localPath: localPath))
++        }
++    }
++
++    private func importPhoto(_ picked: PhotosPickerItem) async {
++        guard let data = try? await picked.loadTransferable(type: Data.self) else { return }
++        guard let localPath = try? AttachmentStorage.shared.save(data: data, fileExtension: "jpg") else { return }
++        let filename = "photo-\(Date().timeIntervalSince1970).jpg"
++
++        if let item {
++            let attachment = Attachment(kind: "photo", filename: filename, localPath: localPath, item: item)
++            modelContext.insert(attachment)
++            item.attachments.append(attachment)
++            try? modelContext.save()
++        } else {
++            pendingAttachments.append(DraftAttachment(kind: "photo", filename: filename, localPath: localPath))
++        }
 +    }
 +
 +    private func load() {
 +        guard let item else {
 +            selectedVaultID = vaults.first?.id
++            reminderDays = []
++            pendingAttachments = []
 +            return
 +        }
 +        title = item.title
@@ -1049,14 +1280,15 @@ index 0000000000000000000000000000000000000000..e6500b76275acb4c5e9437ac8b53cd32
 +        issuer = item.issuer ?? ""
 +        expiryDate = item.expiryDate
 +        notes = item.notes
-+        reminderDays = item.reminderScheduleDays
++        reminderDays = ReminderDayOptions.normalized(item.reminderScheduleDays)
 +        selectedVaultID = item.vault?.id ?? vaults.first?.id
++        pendingAttachments = []
 +    }
 +
 +    private func save() {
 +        guard !title.isEmpty else { return }
 +        if item == nil && !FeatureGate.canCreateItem(currentCount: items.count, tier: entitlement.isPro ? .pro : .free) { return }
-+        let normalized = Array(Set(reminderDays.filter { $0 >= 1 })).sorted(by: >)
++        let normalized = ReminderDayOptions.normalized(reminderDays)
 +        let selectedVault = vaults.first(where: { $0.id == selectedVaultID }) ?? vaults.first
 +
 +        if let item {
@@ -1072,6 +1304,11 @@ index 0000000000000000000000000000000000000000..e6500b76275acb4c5e9437ac8b53cd32
 +        } else {
 +            let new = Item(title: title, category: category, issuer: issuer.isEmpty ? nil : issuer, expiryDate: expiryDate, reminderScheduleDays: normalized, notes: notes, vault: selectedVault)
 +            modelContext.insert(new)
++            for draft in pendingAttachments {
++                let attachment = Attachment(kind: draft.kind, filename: draft.filename, localPath: draft.localPath, item: new)
++                modelContext.insert(attachment)
++                new.attachments.append(attachment)
++            }
 +            Task { await NotificationService.shared.reschedule(item: new) }
 +        }
 +        try? modelContext.save()
@@ -1082,50 +1319,89 @@ index 0000000000000000000000000000000000000000..e6500b76275acb4c5e9437ac8b53cd32
 +struct ReminderEditorView: View {
 +    @Binding var reminderDays: [Int]
 +    @State private var custom = ""
++    @State private var customOptions: [Int] = []
 +    @FocusState private var customFocused: Bool
-+    let common = [90,60,30,14,7,1]
++
++    private var availableDays: [Int] {
++        ReminderDayOptions.availableDays(selected: reminderDays, customAvailable: customOptions)
++    }
 +
 +    var body: some View {
 +        Section("item.reminders".localized) {
-+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 64))]) {
-+                ForEach(common, id: \.self) { day in
-+                    let selected = reminderDays.contains(day)
-+                    Button("\(day)") {
-+                        if selected {
-+                            reminderDays.removeAll { $0 == day }
-+                        } else {
-+                            reminderDays.append(day)
-+                            reminderDays = Array(Set(reminderDays)).sorted(by: >)
-+                        }
++            VStack(alignment: .leading, spacing: 8) {
++                Text("item.reminders_help".localized)
++                    .font(.caption)
++                    .foregroundStyle(.secondary)
++
++                FlowWrap(items: availableDays) { day in
++                    Button {
++                        reminderDays = ReminderDayOptions.toggle(day: day, selected: reminderDays)
++                    } label: {
++                        Text("\(day)")
++                            .font(.subheadline.weight(.semibold))
++                            .frame(minWidth: 44)
++                            .padding(.horizontal, 10)
++                            .padding(.vertical, 8)
++                            .background(reminderDays.contains(day) ? Color.accentColor : Color.gray.opacity(0.15), in: Capsule())
++                            .foregroundStyle(reminderDays.contains(day) ? Color.white : Color.primary)
 +                    }
-+                    .buttonStyle(.borderedProminent)
-+                    .tint(selected ? .blue : .gray)
++                    .buttonStyle(.plain)
++                }
++
++                if reminderDays.isEmpty {
++                    Text("item.reminders_none_selected".localized)
++                        .font(.caption)
++                        .foregroundStyle(.secondary)
++                } else {
++                    Text(String(format: "item.reminders_selected_count".localized, reminderDays.count))
++                        .font(.caption)
++                        .foregroundStyle(.secondary)
++                }
++
++                HStack {
++                    TextField("item.custom_days".localized, text: $custom)
++                        .keyboardType(.numberPad)
++                        .focused($customFocused)
++                    Button("common.add".localized, action: addCustomDay)
 +                }
 +            }
-+            HStack {
-+                TextField("item.custom_days".localized, text: $custom)
-+                    .keyboardType(.numberPad)
-+                    .focused($customFocused)
-+                Button("common.add".localized, action: addCustomDay)
-+            }
++        }
++        .onAppear {
++            customOptions = reminderDays.filter { !ReminderDayOptions.presets.contains($0) }
 +        }
 +    }
 +
 +    private func addCustomDay() {
-+        let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
-+        guard let day = Int(trimmed), day >= 1 else {
++        guard let day = ReminderDayOptions.parseCustom(custom) else {
 +            custom = ""
 +            return
 +        }
-+        guard !reminderDays.contains(day) else {
-+            custom = ""
-+            customFocused = false
-+            return
++
++        if !customOptions.contains(day) {
++            customOptions.append(day)
++            customOptions = ReminderDayOptions.normalized(customOptions)
 +        }
-+        reminderDays.append(day)
-+        reminderDays = Array(Set(reminderDays)).sorted(by: >)
++
++        if !reminderDays.contains(day) {
++            reminderDays.append(day)
++            reminderDays = ReminderDayOptions.normalized(reminderDays)
++        }
++
 +        custom = ""
 +        customFocused = false
++    }
++}
++
++private struct FlowWrap<Item: Hashable, Content: View>: View {
++    let items: [Item]
++    let content: (Item) -> Content
++
++    private let columns = [GridItem(.adaptive(minimum: 72), spacing: 8)]
++
++    var body: some View {
++        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
++            ForEach(items, id: \.self, content: content)
++        }
 +    }
 +}
 diff --git a/RenewalVault/Features/Language/LanguagePickerView.swift b/RenewalVault/Features/Language/LanguagePickerView.swift
@@ -1352,10 +1628,10 @@ index 0000000000000000000000000000000000000000..35636d609d460feccdf2676711c0b1ef
 +# Keep directory in git
 diff --git a/RenewalVault/Features/Vaults/VaultListView.swift b/RenewalVault/Features/Vaults/VaultListView.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..4ed2346c390b2fb4260a55135d0268b9ffc2a949
+index 0000000000000000000000000000000000000000..cd11a87d36d48df2c62e46fbd2289197ea8e0bec
 --- /dev/null
 +++ b/RenewalVault/Features/Vaults/VaultListView.swift
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,70 @@
 +import SwiftUI
 +import SwiftData
 +
@@ -1363,13 +1639,23 @@ index 0000000000000000000000000000000000000000..4ed2346c390b2fb4260a55135d0268b9
 +    @Environment(\.modelContext) private var modelContext
 +    @EnvironmentObject private var entitlement: EntitlementService
 +    @State private var showUpgradeAlert = false
++    @State private var showDeleteErrorAlert = false
 +    @Query(sort: \Vault.createdAt) private var vaults: [Vault]
 +    @State private var name = ""
 +
 +    var body: some View {
 +        List {
 +            ForEach(vaults) { vault in
-+                Text(vault.name)
++                HStack {
++                    Text(vault.name)
++                    if vault.isProtectedDefault {
++                        Spacer()
++                        Text("vault.non_deletable".localized)
++                            .font(.caption)
++                            .foregroundStyle(.secondary)
++                    }
++                }
++                .deleteDisabled(vault.isProtectedDefault)
 +            }
 +            .onDelete(perform: delete)
 +
@@ -1383,6 +1669,11 @@ index 0000000000000000000000000000000000000000..4ed2346c390b2fb4260a55135d0268b9
 +            Button("common.ok".localized, role: .cancel) {}
 +        } message: {
 +            Text("vault.upgrade_required".localized)
++        }
++        .alert("common.notice".localized, isPresented: $showDeleteErrorAlert) {
++            Button("common.ok".localized, role: .cancel) {}
++        } message: {
++            Text("vault.delete_failed".localized)
 +        }
 +    }
 +
@@ -1398,8 +1689,17 @@ index 0000000000000000000000000000000000000000..4ed2346c390b2fb4260a55135d0268b9
 +    }
 +
 +    private func delete(at offsets: IndexSet) {
-+        offsets.map { vaults[$0] }.forEach(modelContext.delete)
-+        try? modelContext.save()
++        let targets = offsets.map { vaults[$0] }
++        guard !targets.contains(where: { $0.isProtectedDefault }) else {
++            showDeleteErrorAlert = true
++            return
++        }
++        targets.forEach(modelContext.delete)
++        do {
++            try modelContext.save()
++        } catch {
++            showDeleteErrorAlert = true
++        }
 +    }
 +}
 diff --git a/RenewalVault/Resources/Assets.xcassets/Contents.json b/RenewalVault/Resources/Assets.xcassets/Contents.json
@@ -1416,10 +1716,10 @@ index 0000000000000000000000000000000000000000..73c00596a7fca3f3d4bdd64053b69d86
 +}
 diff --git a/RenewalVault/Resources/en.lproj/Localizable.strings b/RenewalVault/Resources/en.lproj/Localizable.strings
 new file mode 100644
-index 0000000000000000000000000000000000000000..eab97e4438176064d3754d73804c6c51abf865ef
+index 0000000000000000000000000000000000000000..dfc1954ddd128a39b3ea2b1b2c9246f2358e0e59
 --- /dev/null
 +++ b/RenewalVault/Resources/en.lproj/Localizable.strings
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,112 @@
 +"language.title" = "Choose your language";
 +"language.select" = "Language";
 +"language.continue" = "Continue";
@@ -1465,6 +1765,7 @@ index 0000000000000000000000000000000000000000..eab97e4438176064d3754d73804c6c51
 +"item.notes" = "Notes";
 +"item.reminders" = "Reminders (days before)";
 +"item.custom_days" = "Custom days";
++"item.selected_custom" = "Custom reminders";
 +"item.add" = "Add Item";
 +"item.edit" = "Edit Item";
 +"item.detail" = "Item Detail";
@@ -1520,12 +1821,23 @@ index 0000000000000000000000000000000000000000..eab97e4438176064d3754d73804c6c51
 +"attachment.add_photo" = "Add photo from library";
 +"attachment.add_file" = "Add PDF/File";
 +"attachment.upgrade_required" = "Upgrade to Pro to add more attachments.";
++
++"vault.non_deletable" = "Default";
++"vault.delete_failed" = "This vault cannot be deleted.";
++"item.reminders_help" = "Tap days to select reminder schedule.";
++"item.reminders_none_selected" = "No reminder days selected.";
++"item.reminders_selected_count" = "%d reminder day(s) selected.";
++
++"home.add_to_calendar" = "Add to calendar";
++"calendar.add_success" = "Added to Calendar.";
++"calendar.add_failed" = "Could not add to Calendar.";
++"calendar.access_denied" = "Calendar access denied. Please allow access in Settings.";
 diff --git a/RenewalVault/Resources/es.lproj/Localizable.strings b/RenewalVault/Resources/es.lproj/Localizable.strings
 new file mode 100644
-index 0000000000000000000000000000000000000000..bca78ebffda787a54ff36efdc58d581dfe6ba74a
+index 0000000000000000000000000000000000000000..fda32ae27744310d3a9bd9de321e59b12ea72a67
 --- /dev/null
 +++ b/RenewalVault/Resources/es.lproj/Localizable.strings
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,112 @@
 +"language.title" = "Elige tu idioma";
 +"language.select" = "Idioma";
 +"language.continue" = "Continuar";
@@ -1571,6 +1883,7 @@ index 0000000000000000000000000000000000000000..bca78ebffda787a54ff36efdc58d581d
 +"item.notes" = "Notas";
 +"item.reminders" = "Recordatorios (días antes)";
 +"item.custom_days" = "Días personalizados";
++"item.selected_custom" = "Recordatorios personalizados";
 +"item.add" = "Agregar elemento";
 +"item.edit" = "Editar elemento";
 +"item.detail" = "Detalle";
@@ -1626,12 +1939,23 @@ index 0000000000000000000000000000000000000000..bca78ebffda787a54ff36efdc58d581d
 +"attachment.add_photo" = "Añadir foto desde biblioteca";
 +"attachment.add_file" = "Añadir PDF/archivo";
 +"attachment.upgrade_required" = "Actualiza a Pro para añadir más adjuntos.";
++
++"vault.non_deletable" = "Predeterminada";
++"vault.delete_failed" = "Esta bóveda no se puede eliminar.";
++"item.reminders_help" = "Toca los días para seleccionar los recordatorios.";
++"item.reminders_none_selected" = "No hay días de recordatorio seleccionados.";
++"item.reminders_selected_count" = "%d día(s) de recordatorio seleccionado(s).";
++
++"home.add_to_calendar" = "Añadir al calendario";
++"calendar.add_success" = "Añadido al Calendario.";
++"calendar.add_failed" = "No se pudo añadir al Calendario.";
++"calendar.access_denied" = "Acceso al calendario denegado. Permítelo en Ajustes.";
 diff --git a/RenewalVaultTests/RenewalVaultTests.swift b/RenewalVaultTests/RenewalVaultTests.swift
 new file mode 100644
-index 0000000000000000000000000000000000000000..685160f763d580329009c1dfac13d00c016d8a9c
+index 0000000000000000000000000000000000000000..6bdf06d2b0c63734d2cbe40af1444dd085441c05
 --- /dev/null
 +++ b/RenewalVaultTests/RenewalVaultTests.swift
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,108 @@
 +import XCTest
 +@testable import RenewalVault
 +
@@ -1696,6 +2020,13 @@ index 0000000000000000000000000000000000000000..685160f763d580329009c1dfac13d00c
 +        XCTAssertEqual(item.vault?.name, "Business")
 +    }
 +
++    func testProtectedPersonalVault() {
++        let protected = Vault(name: "Personal", isSystemDefault: true)
++        let userVault = Vault(name: "Travel")
++        XCTAssertTrue(protected.isProtectedDefault)
++        XCTAssertFalse(userVault.isProtectedDefault)
++    }
++
 +    func testFreeTierVaultLimit() {
 +        XCTAssertFalse(FeatureGate.canCreateVault(currentCount: 1, tier: .free))
 +        XCTAssertTrue(FeatureGate.canCreateVault(currentCount: 1, tier: .pro))
@@ -1704,6 +2035,24 @@ index 0000000000000000000000000000000000000000..685160f763d580329009c1dfac13d00c
 +    func testAttachmentLimitGate() {
 +        XCTAssertFalse(FeatureGate.canAddAttachment(currentCount: 3, tier: .free))
 +        XCTAssertTrue(FeatureGate.canAddAttachment(currentCount: 3, tier: .pro))
++    }
++
++    func testReminderOptionsCustomAddAndToggle() {
++        var selected = [30]
++        selected = ReminderDayOptions.toggle(day: 45, selected: selected)
++        XCTAssertTrue(selected.contains(45))
++
++        selected = ReminderDayOptions.toggle(day: 45, selected: selected)
++        XCTAssertFalse(selected.contains(45))
++
++        XCTAssertNil(ReminderDayOptions.parseCustom("0"))
++        XCTAssertEqual(ReminderDayOptions.parseCustom(" 15 "), 15)
++    }
++
++    func testReminderAvailableDaysKeepsCustomVisible() {
++        let values = ReminderDayOptions.availableDays(selected: [45], customAvailable: [45])
++        XCTAssertTrue(values.contains(45))
++        XCTAssertTrue(values.contains(90))
 +    }
 +
 +    @MainActor

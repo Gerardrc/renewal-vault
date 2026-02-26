@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
+import UniformTypeIdentifiers
 
 struct ItemEditorView: View {
     @Environment(\.modelContext) private var modelContext
@@ -16,6 +18,21 @@ struct ItemEditorView: View {
     @State private var notes = ""
     @State private var reminderDays: [Int] = []
     @State private var selectedVaultID: UUID?
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showingFileImporter = false
+    @State private var showingAttachmentLimitAlert = false
+    @State private var pendingAttachments: [DraftAttachment] = []
+
+    private struct DraftAttachment: Identifiable {
+        let id = UUID()
+        let kind: String
+        let filename: String
+        let localPath: String
+    }
+
+    private var attachmentCount: Int {
+        (item?.attachments.count ?? 0) + pendingAttachments.count
+    }
 
     var body: some View {
         Form {
@@ -35,18 +52,96 @@ struct ItemEditorView: View {
             DatePicker("item.expiry".localized, selection: $expiryDate, displayedComponents: .date)
             TextField("item.notes".localized, text: $notes, axis: .vertical)
             ReminderEditorView(reminderDays: $reminderDays)
+
+            Section("item.attachments".localized) {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Label("attachment.add_photo".localized, systemImage: "photo")
+                }
+
+                Button {
+                    showingFileImporter = true
+                } label: {
+                    Label("attachment.add_file".localized, systemImage: "doc")
+                }
+
+                if let item {
+                    ForEach(item.attachments) { attachment in
+                        Text("\(attachment.kind.uppercased()): \(attachment.filename)")
+                    }
+                }
+
+                ForEach(pendingAttachments) { draft in
+                    Text("\(draft.kind.uppercased()): \(draft.filename)")
+                }
+            }
         }
         .navigationTitle(item == nil ? "item.add".localized : "item.edit".localized)
         .toolbar {
             Button("common.save".localized) { save() }
         }
+        .alert("common.notice".localized, isPresented: $showingAttachmentLimitAlert) {
+            Button("common.ok".localized, role: .cancel) {}
+        } message: {
+            Text("attachment.upgrade_required".localized)
+        }
+        .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.pdf, .data], allowsMultipleSelection: false) { result in
+            guard canAddAttachment() else {
+                showingAttachmentLimitAlert = true
+                return
+            }
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            importFile(url)
+        }
+        .onChange(of: selectedPhotoItem) { newValue in
+            guard let newValue else { return }
+            guard canAddAttachment() else {
+                showingAttachmentLimitAlert = true
+                return
+            }
+            Task { await importPhoto(newValue) }
+        }
         .onAppear { load() }
+    }
+
+    private func canAddAttachment() -> Bool {
+        FeatureGate.canAddAttachment(currentCount: attachmentCount, tier: entitlement.isPro ? .pro : .free)
+    }
+
+    private func importFile(_ url: URL) {
+        guard let data = try? Data(contentsOf: url) else { return }
+        let ext = url.pathExtension.isEmpty ? "pdf" : url.pathExtension
+        guard let localPath = try? AttachmentStorage.shared.save(data: data, fileExtension: ext) else { return }
+
+        if let item {
+            let attachment = Attachment(kind: "pdf", filename: url.lastPathComponent, localPath: localPath, item: item)
+            modelContext.insert(attachment)
+            item.attachments.append(attachment)
+            try? modelContext.save()
+        } else {
+            pendingAttachments.append(DraftAttachment(kind: "pdf", filename: url.lastPathComponent, localPath: localPath))
+        }
+    }
+
+    private func importPhoto(_ picked: PhotosPickerItem) async {
+        guard let data = try? await picked.loadTransferable(type: Data.self) else { return }
+        guard let localPath = try? AttachmentStorage.shared.save(data: data, fileExtension: "jpg") else { return }
+        let filename = "photo-\(Date().timeIntervalSince1970).jpg"
+
+        if let item {
+            let attachment = Attachment(kind: "photo", filename: filename, localPath: localPath, item: item)
+            modelContext.insert(attachment)
+            item.attachments.append(attachment)
+            try? modelContext.save()
+        } else {
+            pendingAttachments.append(DraftAttachment(kind: "photo", filename: filename, localPath: localPath))
+        }
     }
 
     private func load() {
         guard let item else {
             selectedVaultID = vaults.first?.id
             reminderDays = []
+            pendingAttachments = []
             return
         }
         title = item.title
@@ -56,6 +151,7 @@ struct ItemEditorView: View {
         notes = item.notes
         reminderDays = ReminderDayOptions.normalized(item.reminderScheduleDays)
         selectedVaultID = item.vault?.id ?? vaults.first?.id
+        pendingAttachments = []
     }
 
     private func save() {
@@ -77,6 +173,11 @@ struct ItemEditorView: View {
         } else {
             let new = Item(title: title, category: category, issuer: issuer.isEmpty ? nil : issuer, expiryDate: expiryDate, reminderScheduleDays: normalized, notes: notes, vault: selectedVault)
             modelContext.insert(new)
+            for draft in pendingAttachments {
+                let attachment = Attachment(kind: draft.kind, filename: draft.filename, localPath: draft.localPath, item: new)
+                modelContext.insert(attachment)
+                new.attachments.append(attachment)
+            }
             Task { await NotificationService.shared.reschedule(item: new) }
         }
         try? modelContext.save()
@@ -110,13 +211,8 @@ struct ReminderEditorView: View {
                             .frame(minWidth: 44)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
-                            .background(
-                                reminderDays.contains(day) ? Color.accentColor : Color.gray.opacity(0.15),
-                                in: Capsule()
-                            )
-                            .foregroundStyle(
-                                reminderDays.contains(day) ? Color.white : Color.primary
-                            )
+                            .background(reminderDays.contains(day) ? Color.accentColor : Color.gray.opacity(0.15), in: Capsule())
+                            .foregroundStyle(reminderDays.contains(day) ? Color.white : Color.primary)
                     }
                     .buttonStyle(.plain)
                 }

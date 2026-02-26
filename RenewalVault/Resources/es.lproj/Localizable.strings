@@ -105,3 +105,8 @@
 "item.reminders_help" = "Toca los días para seleccionar los recordatorios.";
 "item.reminders_none_selected" = "No hay días de recordatorio seleccionados.";
 "item.reminders_selected_count" = "%d día(s) de recordatorio seleccionado(s).";
+
+"home.add_to_calendar" = "Añadir al calendario";
+"calendar.add_success" = "Añadido al Calendario.";
+"calendar.add_failed" = "No se pudo añadir al Calendario.";
+"calendar.access_denied" = "Acceso al calendario denegado. Permítelo en Ajustes.";
