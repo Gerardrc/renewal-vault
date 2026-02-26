@@ -102,7 +102,6 @@ struct ReminderEditorView: View {
                     .foregroundStyle(.secondary)
 
                 FlowWrap(items: availableDays) { day in
-                    let selected = reminderDays.contains(day)
                     Button {
                         reminderDays = ReminderDayOptions.toggle(day: day, selected: reminderDays)
                     } label: {
@@ -111,8 +110,13 @@ struct ReminderEditorView: View {
                             .frame(minWidth: 44)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
-                            .background(selected ? Color.accentColor : Color.gray.opacity(0.15), in: Capsule())
-                            .foregroundStyle(selected ? Color.white : Color.primary)
+                            .background(
+                                reminderDays.contains(day) ? Color.accentColor : Color.gray.opacity(0.15),
+                                in: Capsule()
+                            )
+                            .foregroundStyle(
+                                reminderDays.contains(day) ? Color.white : Color.primary
+                            )
                     }
                     .buttonStyle(.plain)
                 }
