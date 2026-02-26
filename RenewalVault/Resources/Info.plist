@@ -4,6 +4,8 @@
 <dict>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Renewal Vault uses calendar access to add expiry events for your renewals.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Renewal Vault uses calendar access to add expiry events for your renewals.</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
 	<string>Renewal Vault uses calendar access to add expiry events for your renewals.</string>
 </dict>

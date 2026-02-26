@@ -6,6 +6,21 @@ final class CalendarEventService {
     private let store = EKEventStore()
 
     @MainActor
+    func requestCalendarAccessIfNeeded() async throws -> Bool {
+        let status = Self.authorizationStatus()
+        switch status {
+        case .fullAccess, .writeOnly, .authorized:
+            return true
+        case .denied, .restricted:
+            return false
+        case .notDetermined:
+            return try await requestCalendarAccess()
+        @unknown default:
+            return false
+        }
+    }
+
+    @MainActor
     func requestCalendarAccess() async throws -> Bool {
         if #available(iOS 17.0, *) {
             return try await store.requestFullAccessToEvents()
@@ -22,9 +37,13 @@ final class CalendarEventService {
         }
     }
 
+    static func authorizationStatus() -> EKAuthorizationStatus {
+        EKEventStore.authorizationStatus(for: .event)
+    }
+
     @MainActor
     func addExpiryEvent(for item: Item) async throws {
-        let granted = try await requestCalendarAccess()
+        let granted = try await requestCalendarAccessIfNeeded()
         guard granted else { throw CalendarEventError.accessDenied }
 
         let event = EKEvent(eventStore: store)
