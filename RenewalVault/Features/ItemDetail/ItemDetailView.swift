@@ -6,13 +6,19 @@ struct ItemDetailView: View {
     let item: Item
     @State private var showingRenew = false
     @State private var newDate = Date()
+    @State private var showingRenewActions = false
 
     var body: some View {
         List {
             Section("item.details".localized) {
                 Text(item.title)
-                Text(item.category)
+                Text("category.\(item.category)".localized)
                 Text(item.expiryDate.formatted(date: .abbreviated, time: .omitted))
+                if item.isCompleted {
+                    Text("item.completed_badge".localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Text(item.notes)
             }
 
@@ -31,10 +37,28 @@ struct ItemDetailView: View {
         .navigationTitle("item.detail".localized)
         .toolbar {
             NavigationLink("common.edit".localized) { ItemEditorView(item: item) }
-            Button("item.mark_renewed".localized) {
+            Button(item.isCompleted ? "item.reactivate".localized : "item.mark_renewed".localized) {
+                if item.isCompleted {
+                    reactivate()
+                } else {
+                    showingRenewActions = true
+                }
+            }
+            Button("item.delete".localized, role: .destructive) {
+                NotificationService.shared.cancelNotifications(for: item)
+                modelContext.delete(item)
+                try? modelContext.save()
+            }
+        }
+        .confirmationDialog("item.renew_options".localized, isPresented: $showingRenewActions) {
+            Button("item.renew".localized) {
                 newDate = item.expiryDate.addingTimeInterval(60*60*24*365)
                 showingRenew = true
             }
+            Button("item.no_renewal".localized, role: .destructive) {
+                markNoRenewal()
+            }
+            Button("common.cancel".localized, role: .cancel) {}
         }
         .sheet(isPresented: $showingRenew) {
             NavigationStack {
@@ -43,6 +67,8 @@ struct ItemDetailView: View {
                         Button("common.save".localized) {
                             let event = RenewalEvent(previousExpiryDate: item.expiryDate, newExpiryDate: newDate, item: item)
                             item.expiryDate = newDate
+                            item.isCompleted = false
+                            item.repeatAfterRenewal = true
                             item.renewalEvents.append(event)
                             modelContext.insert(event)
                             try? modelContext.save()
@@ -52,5 +78,17 @@ struct ItemDetailView: View {
                     }
             }
         }
+    }
+
+    private func markNoRenewal() {
+        item.markNoRenewal()
+        NotificationService.shared.cancelNotifications(for: item)
+        try? modelContext.save()
+    }
+
+    private func reactivate() {
+        item.reactivate()
+        try? modelContext.save()
+        Task { await NotificationService.shared.reschedule(item: item) }
     }
 }

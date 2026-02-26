@@ -6,12 +6,20 @@ struct SettingsView: View {
     @EnvironmentObject private var entitlement: EntitlementService
     @State private var showPaywall = false
 
+    private var languageBinding: Binding<AppLanguage> {
+        Binding(
+            get: { languageManager.selectedLanguage },
+            set: { languageManager.setLanguage($0) }
+        )
+    }
+
     var body: some View {
         List {
             Section("settings.language".localized) {
-                Picker("settings.language".localized, selection: $languageManager.selectedLanguageCode) {
-                    Text("English").tag("en")
-                    Text("Español").tag("es")
+                Picker("settings.language".localized, selection: languageBinding) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.displayName).tag(language)
+                    }
                 }
                 .pickerStyle(.segmented)
             }
@@ -30,12 +38,12 @@ struct SettingsView: View {
             }
 
             #if DEBUG
-            Section("Developer") {
-                Toggle("Simulate Pro", isOn: $entitlement.debugForcePro)
+            Section("settings.developer".localized) {
+                Toggle("settings.simulate_pro".localized, isOn: $entitlement.debugForcePro)
                     .onChange(of: entitlement.debugForcePro) { _ in
                         Task { await entitlement.refreshEntitlements() }
                     }
-                Button("Reset onboarding") { appState.resetOnboarding() }
+                Button("settings.reset_onboarding".localized) { appState.resetOnboarding() }
             }
             #endif
         }

@@ -26,6 +26,7 @@ final class Item {
     var expiryDate: Date
     var reminderScheduleDays: [Int]
     var repeatAfterRenewal: Bool
+    var isCompleted: Bool
     var notes: String
     var createdAt: Date
     var updatedAt: Date
@@ -43,6 +44,7 @@ final class Item {
         expiryDate: Date,
         reminderScheduleDays: [Int] = [30, 14, 7, 1],
         repeatAfterRenewal: Bool = true,
+        isCompleted: Bool = false,
         notes: String = "",
         createdAt: Date = .now,
         updatedAt: Date = .now,
@@ -56,6 +58,7 @@ final class Item {
         self.expiryDate = expiryDate
         self.reminderScheduleDays = reminderScheduleDays
         self.repeatAfterRenewal = repeatAfterRenewal
+        self.isCompleted = isCompleted
         self.notes = notes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -126,5 +129,20 @@ enum ItemCategory: String, CaseIterable, Identifiable {
         case .subscription: "creditcard"
         case .other: "doc"
         }
+    }
+}
+
+
+extension Item {
+    func markNoRenewal() {
+        repeatAfterRenewal = false
+        isCompleted = true
+        updatedAt = .now
+    }
+
+    func reactivate() {
+        isCompleted = false
+        repeatAfterRenewal = true
+        updatedAt = .now
     }
 }
