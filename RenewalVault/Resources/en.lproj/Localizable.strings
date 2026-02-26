@@ -1,31 +1,48 @@
 "language.title" = "Choose your language";
 "language.select" = "Language";
 "language.continue" = "Continue";
+"language.english" = "English";
+"language.spanish" = "Spanish";
+
 "tab.home" = "Home";
 "tab.vaults" = "Vaults";
 "tab.settings" = "Settings";
+
 "common.skip" = "Skip";
+"common.next" = "Next";
+"common.add" = "Add";
+"common.save" = "Save";
+"common.edit" = "Edit";
+"common.cancel" = "Cancel";
+
 "onboard.get_started" = "Get started";
 "onboard.track" = "Track all your expirations in one place.";
 "onboard.smart" = "Get smart reminders before deadlines.";
 "onboard.attach" = "Attach photos and PDFs to each item.";
 "onboard.export" = "Export your vault to PDF with Pro.";
+
 "home.filters" = "Filters";
 "home.search" = "Search title or issuer";
 "home.upcoming_only" = "Upcoming only";
+"home.show_completed" = "Show completed";
+"home.vault_filter" = "Vault";
+"home.all_vaults" = "All vaults";
+"home.category_filter" = "Category";
+"home.all_categories" = "All categories";
 "home.expiring_soon" = "Expiring soon";
 "home.later" = "Later";
 "home.expired" = "Expired";
 "home.empty" = "No renewals yet";
-"common.add" = "Add";
-"common.save" = "Save";
-"common.edit" = "Edit";
+"home.empty_templates" = "Passport • National ID • Driver's license • Car insurance • Lease • Health insurance";
+
 "item.title" = "Title";
 "item.category" = "Category";
+"item.vault" = "Vault";
 "item.issuer" = "Issuer";
 "item.expiry" = "Expiry date";
 "item.notes" = "Notes";
 "item.reminders" = "Reminders (days before)";
+"item.custom_days" = "Custom days";
 "item.add" = "Add Item";
 "item.edit" = "Edit Item";
 "item.detail" = "Item Detail";
@@ -34,8 +51,25 @@
 "item.renewal_history" = "Renewal history";
 "item.mark_renewed" = "Mark renewed";
 "item.new_expiry" = "New expiry date";
+"item.renew_options" = "Renewal options";
+"item.renew" = "Renew";
+"item.no_renewal" = "No renewal";
+"item.completed_badge" = "Completed";
+"item.reactivate" = "Reactivate";
+"item.delete" = "Delete item";
+
+"category.passport" = "Passport";
+"category.nationalID" = "National ID";
+"category.driversLicense" = "Driver's license";
+"category.carInsurance" = "Car insurance";
+"category.lease" = "Lease";
+"category.healthInsurance" = "Health insurance";
+"category.subscription" = "Subscription";
+"category.other" = "Other";
+
 "vault.new" = "New Vault";
 "vault.name" = "Vault name";
+
 "settings.language" = "Language";
 "settings.subscription" = "Subscription";
 "settings.manage_subscription" = "Upgrade to Pro";
@@ -43,9 +77,15 @@
 "settings.notifications" = "Notifications";
 "settings.notification_settings" = "Open Notification Settings";
 "settings.privacy" = "Privacy";
+"settings.developer" = "Developer";
+"settings.simulate_pro" = "Simulate Pro";
+"settings.reset_onboarding" = "Reset onboarding";
+
 "privacy.body" = "Renewal Vault stores your data locally on device. We do not track your activity by default.";
+
 "paywall.title" = "Renewal Vault Pro";
 "paywall.features" = "Unlimited vaults, unlimited items, unlimited attachments, PDF export.";
+
 "notification.title" = "Renewal Reminder";
 "notification.expired" = "This item is expired.";
 "notification.expires_in" = "%@ expires in %d day(s).";

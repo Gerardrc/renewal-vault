@@ -59,3 +59,11 @@ Then submit metadata/pricing and attach to app version.
 ## Notes
 - Attachment ingest UI (camera/library/files) is scaffold-ready; storage and file protection implementation are included in `AttachmentStorage`.
 - PDF export engine is implemented with UIKit PDF renderer (`VaultPDFExporter`).
+
+
+## Recent UX updates
+- In-app language switch now updates UI immediately via runtime localization bundle override (`LocalizationBundle`) + `LanguageManager` publish refresh.
+- Onboarding is a 4-page flow with Skip, Next, and Get started.
+- Item detail supports **Renew** and **No renewal** paths; no-renewal marks item completed and stops notifications.
+- Home adds **Show completed** toggle (completed hidden by default).
+- Item add/edit now includes Vault picker so items can be moved between vaults.

@@ -1,14 +1,35 @@
 import Foundation
 import SwiftUI
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case en
+    case es
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .en: return "language.english".localized
+        case .es: return "language.spanish".localized
+        }
+    }
+
+    var bundleCode: String { rawValue }
+
+    static var systemDefault: AppLanguage {
+        Locale.preferredLanguages.first?.hasPrefix("es") == true ? .es : .en
+    }
+}
+
 @MainActor
 final class LanguageManager: ObservableObject {
     static let languageCodeKey = "app.language.code"
 
-    @Published var selectedLanguageCode: String {
+    @Published private(set) var selectedLanguage: AppLanguage {
         didSet {
-            UserDefaults.standard.set(selectedLanguageCode, forKey: Self.languageCodeKey)
-            locale = Locale(identifier: selectedLanguageCode)
+            UserDefaults.standard.set(selectedLanguage.rawValue, forKey: Self.languageCodeKey)
+            LocalizationBundle.setLanguage(code: selectedLanguage.bundleCode)
+            locale = Locale(identifier: selectedLanguage.bundleCode)
+            objectWillChange.send()
         }
     }
 
@@ -16,14 +37,18 @@ final class LanguageManager: ObservableObject {
 
     init() {
         let saved = UserDefaults.standard.string(forKey: Self.languageCodeKey)
-        let preferred = Locale.preferredLanguages.first?.hasPrefix("es") == true ? "es" : "en"
-        let code = saved ?? preferred
-        self.selectedLanguageCode = code
-        self.locale = Locale(identifier: code)
+        let language = AppLanguage(rawValue: saved ?? "") ?? AppLanguage.systemDefault
+        self.selectedLanguage = language
+        self.locale = Locale(identifier: language.bundleCode)
+        LocalizationBundle.setLanguage(code: language.bundleCode)
     }
 
-    func setLanguage(_ code: String) {
-        selectedLanguageCode = code
+    func setLanguage(_ language: AppLanguage) {
+        selectedLanguage = language
+    }
+
+    func setLanguage(code: String) {
+        setLanguage(AppLanguage(rawValue: code) ?? .en)
     }
 }
 

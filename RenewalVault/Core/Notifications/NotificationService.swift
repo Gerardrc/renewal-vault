@@ -16,11 +16,17 @@ struct NotificationService {
         }
     }
 
-    func reschedule(item: Item) async {
+    func cancelNotifications(for item: Item) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: item.scheduledNotificationIdentifiers)
         item.scheduledNotificationIdentifiers = []
+    }
 
+    func reschedule(item: Item) async {
+        cancelNotifications(for: item)
+        guard !item.isCompleted else { return }
+
+        let center = UNUserNotificationCenter.current()
         let dates = ReminderScheduler.reminderDates(expiryDate: item.expiryDate, reminderDays: item.reminderScheduleDays)
         for (index, date) in dates.enumerated() {
             var components = Calendar.current.dateComponents([.year, .month, .day], from: date)

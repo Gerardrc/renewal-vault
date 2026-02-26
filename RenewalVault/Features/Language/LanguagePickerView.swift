@@ -3,19 +3,19 @@ import SwiftUI
 struct LanguagePickerView: View {
     @EnvironmentObject private var languageManager: LanguageManager
     @EnvironmentObject private var appState: AppState
-    @State private var selected: String
+    @State private var selected: AppLanguage
 
     init() {
-        let preferred = Locale.preferredLanguages.first?.hasPrefix("es") == true ? "es" : "en"
-        _selected = State(initialValue: preferred)
+        _selected = State(initialValue: AppLanguage.systemDefault)
     }
 
     var body: some View {
         VStack(spacing: 20) {
             Text("language.title".localized).font(.largeTitle.bold())
             Picker("language.select".localized, selection: $selected) {
-                Text("English").tag("en")
-                Text("Español").tag("es")
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName).tag(language)
+                }
             }
             .pickerStyle(.segmented)
 
@@ -26,5 +26,6 @@ struct LanguagePickerView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding()
+        .onAppear { selected = languageManager.selectedLanguage }
     }
 }

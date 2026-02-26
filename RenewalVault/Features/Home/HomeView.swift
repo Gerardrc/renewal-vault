@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var selectedVaultID: UUID?
     @State private var categoryFilter = ""
     @State private var upcomingOnly = false
+    @State private var showCompleted = false
 
     private var filtered: [Item] {
         items.filter { item in
@@ -15,7 +16,8 @@ struct HomeView: View {
             let vOK = selectedVaultID == nil || item.vault?.id == selectedVaultID
             let cOK = categoryFilter.isEmpty || item.category == categoryFilter
             let upOK = !upcomingOnly || item.expiryDate >= Calendar.current.startOfDay(for: .now)
-            return qOK && vOK && cOK && upOK
+            let completionOK = showCompleted || !item.isCompleted
+            return qOK && vOK && cOK && upOK && completionOK
         }
     }
 
@@ -23,7 +25,20 @@ struct HomeView: View {
         List {
             Section("home.filters".localized) {
                 TextField("home.search".localized, text: $query)
+                Picker("home.vault_filter".localized, selection: $selectedVaultID) {
+                    Text("home.all_vaults".localized).tag(UUID?.none)
+                    ForEach(vaults) { vault in
+                        Text(vault.name).tag(Optional(vault.id))
+                    }
+                }
+                Picker("home.category_filter".localized, selection: $categoryFilter) {
+                    Text("home.all_categories".localized).tag("")
+                    ForEach(ItemCategory.allCases) { c in
+                        Text("category.\(c.rawValue)".localized).tag(c.rawValue)
+                    }
+                }
                 Toggle("home.upcoming_only".localized, isOn: $upcomingOnly)
+                Toggle("home.show_completed".localized, isOn: $showCompleted)
             }
 
             bucketSection(title: "home.expiring_soon".localized, bucket: .soon)
@@ -32,7 +47,7 @@ struct HomeView: View {
 
             if items.isEmpty {
                 Section("home.empty".localized) {
-                    Text("Passport • National ID • Driver’s license • Car insurance • Lease • Health insurance")
+                    Text("home.empty_templates".localized)
                         .font(.caption)
                 }
             }
@@ -53,7 +68,15 @@ struct HomeView: View {
                 ForEach(sectionItems) { item in
                     NavigationLink(destination: ItemDetailView(item: item)) {
                         VStack(alignment: .leading) {
-                            Text(item.title).font(.headline)
+                            HStack {
+                                Text(item.title).font(.headline)
+                                if item.isCompleted {
+                                    Text("item.completed_badge".localized)
+                                        .font(.caption2)
+                                        .padding(4)
+                                        .background(.gray.opacity(0.2), in: Capsule())
+                                }
+                            }
                             Text(item.vault?.name ?? "-") + Text(" · \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))")
                         }
                     }

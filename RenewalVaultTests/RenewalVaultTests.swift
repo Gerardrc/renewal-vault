@@ -43,4 +43,31 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertFalse(state.hasChosenLanguage)
         XCTAssertFalse(state.hasCompletedOnboarding)
     }
+
+    func testNoRenewalMarksCompleted() {
+        let item = Item(title: "Lease", category: "lease", expiryDate: .now, scheduledNotificationIdentifiers: ["a", "b"])
+        item.markNoRenewal()
+
+        XCTAssertTrue(item.isCompleted)
+        XCTAssertFalse(item.repeatAfterRenewal)
+    }
+
+    func testVaultRelationshipCanChange() {
+        let v1 = Vault(name: "Personal")
+        let v2 = Vault(name: "Business")
+        let item = Item(title: "Passport", category: "passport", expiryDate: .now, vault: v1)
+
+        XCTAssertEqual(item.vault?.name, "Personal")
+        item.vault = v2
+        XCTAssertEqual(item.vault?.name, "Business")
+    }
+
+    @MainActor
+    func testLanguagePersistence() {
+        let manager = LanguageManager()
+        manager.setLanguage(.es)
+
+        XCTAssertEqual(UserDefaults.standard.string(forKey: LanguageManager.languageCodeKey), "es")
+        XCTAssertEqual(manager.locale.identifier, "es")
+    }
 }
