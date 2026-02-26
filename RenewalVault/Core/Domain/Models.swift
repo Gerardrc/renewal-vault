@@ -7,13 +7,15 @@ final class Vault {
     var name: String
     var createdAt: Date
     var updatedAt: Date
+    var isSystemDefault: Bool
     @Relationship(deleteRule: .cascade, inverse: \Item.vault) var items: [Item] = []
 
-    init(id: UUID = UUID(), name: String, createdAt: Date = .now, updatedAt: Date = .now) {
+    init(id: UUID = UUID(), name: String, createdAt: Date = .now, updatedAt: Date = .now, isSystemDefault: Bool = false) {
         self.id = id
         self.name = name
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.isSystemDefault = isSystemDefault
     }
 }
 
@@ -144,5 +146,12 @@ extension Item {
         isCompleted = false
         repeatAfterRenewal = true
         updatedAt = .now
+    }
+}
+
+
+extension Vault {
+    var isProtectedDefault: Bool {
+        isSystemDefault || name.caseInsensitiveCompare("Personal") == .orderedSame
     }
 }

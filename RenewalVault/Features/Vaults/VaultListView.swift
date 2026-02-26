@@ -5,13 +5,23 @@ struct VaultListView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var entitlement: EntitlementService
     @State private var showUpgradeAlert = false
+    @State private var showDeleteErrorAlert = false
     @Query(sort: \Vault.createdAt) private var vaults: [Vault]
     @State private var name = ""
 
     var body: some View {
         List {
             ForEach(vaults) { vault in
-                Text(vault.name)
+                HStack {
+                    Text(vault.name)
+                    if vault.isProtectedDefault {
+                        Spacer()
+                        Text("vault.non_deletable".localized)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .deleteDisabled(vault.isProtectedDefault)
             }
             .onDelete(perform: delete)
 
@@ -25,6 +35,11 @@ struct VaultListView: View {
             Button("common.ok".localized, role: .cancel) {}
         } message: {
             Text("vault.upgrade_required".localized)
+        }
+        .alert("common.notice".localized, isPresented: $showDeleteErrorAlert) {
+            Button("common.ok".localized, role: .cancel) {}
+        } message: {
+            Text("vault.delete_failed".localized)
         }
     }
 
@@ -40,7 +55,16 @@ struct VaultListView: View {
     }
 
     private func delete(at offsets: IndexSet) {
-        offsets.map { vaults[$0] }.forEach(modelContext.delete)
-        try? modelContext.save()
+        let targets = offsets.map { vaults[$0] }
+        guard !targets.contains(where: { $0.isProtectedDefault }) else {
+            showDeleteErrorAlert = true
+            return
+        }
+        targets.forEach(modelContext.delete)
+        do {
+            try modelContext.save()
+        } catch {
+            showDeleteErrorAlert = true
+        }
     }
 }

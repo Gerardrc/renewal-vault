@@ -20,19 +20,22 @@ final class AppState: ObservableObject {
 
         do {
             let descriptor = FetchDescriptor<Vault>()
-            let count = try modelContext.fetchCount(descriptor)
-            if count == 0 {
-                modelContext.insert(Vault(name: "Personal"))
+            let vaults = try modelContext.fetch(descriptor)
+            if vaults.isEmpty {
+                modelContext.insert(Vault(name: "Personal", isSystemDefault: true))
                 try modelContext.save()
+            } else if !vaults.contains(where: { $0.isProtectedDefault }) {
+                if let personal = vaults.first(where: { $0.name.caseInsensitiveCompare("Personal") == .orderedSame }) ?? vaults.first {
+                    personal.isSystemDefault = true
+                    try modelContext.save()
+                }
             }
         } catch {
             assertionFailure("Failed initial bootstrap")
         }
     }
 
-    func setLanguageChosen() {
-        hasChosenLanguage = true
-    }
+    func setLanguageChosen() { hasChosenLanguage = true }
 
     func finishOnboarding() {
         UserDefaults.standard.set(true, forKey: onboardingKey)
