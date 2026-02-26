@@ -8,15 +8,24 @@ struct TransientMessage: Identifiable, Equatable {
 
 @MainActor
 final class AppState: ObservableObject {
+    static let languageChosenKey = "app.language.chosen"
+    static let onboardingKey = "onboarding.completed"
+    static let initialPermissionsRequestedKey = "onboarding.initial_permissions.requested"
+
     @Published var hasChosenLanguage: Bool = false
     @Published var hasCompletedOnboarding: Bool = false
     @Published var transientMessage: TransientMessage?
 
-    private let onboardingKey = "onboarding.completed"
-
     func bootstrapIfNeeded(modelContext: ModelContext) async {
-        hasChosenLanguage = UserDefaults.standard.string(forKey: LanguageManager.languageCodeKey) != nil
-        hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
+        let defaults = UserDefaults.standard
+        let hasPersistedLanguage = defaults.string(forKey: LanguageManager.languageCodeKey) != nil
+        let hasChosen = defaults.bool(forKey: Self.languageChosenKey) || hasPersistedLanguage
+        hasChosenLanguage = hasChosen
+        hasCompletedOnboarding = defaults.bool(forKey: Self.onboardingKey)
+
+        if hasChosen && !defaults.bool(forKey: Self.languageChosenKey) {
+            defaults.set(true, forKey: Self.languageChosenKey)
+        }
 
         do {
             let descriptor = FetchDescriptor<Vault>()
@@ -35,19 +44,36 @@ final class AppState: ObservableObject {
         }
     }
 
-    func setLanguageChosen() { hasChosenLanguage = true }
+    func setLanguageChosen() {
+        UserDefaults.standard.set(true, forKey: Self.languageChosenKey)
+        hasChosenLanguage = true
+    }
 
     func finishOnboarding() {
-        UserDefaults.standard.set(true, forKey: onboardingKey)
+        UserDefaults.standard.set(true, forKey: Self.onboardingKey)
         hasCompletedOnboarding = true
+        Task { await requestFirstRunPermissionsIfNeeded() }
     }
 
     func resetOnboarding() {
-        UserDefaults.standard.set(false, forKey: onboardingKey)
+        UserDefaults.standard.set(false, forKey: Self.onboardingKey)
+        UserDefaults.standard.set(false, forKey: Self.initialPermissionsRequestedKey)
         hasCompletedOnboarding = false
     }
 
     func showMessage(_ text: String) {
         transientMessage = TransientMessage(text: text)
+    }
+
+    func shouldRequestInitialPermissions() -> Bool {
+        !UserDefaults.standard.bool(forKey: Self.initialPermissionsRequestedKey)
+    }
+
+    func requestFirstRunPermissionsIfNeeded() async {
+        guard shouldRequestInitialPermissions() else { return }
+        UserDefaults.standard.set(true, forKey: Self.initialPermissionsRequestedKey)
+
+        _ = await NotificationService.shared.requestPermission()
+        _ = try? await CalendarEventService.shared.requestCalendarAccess()
     }
 }

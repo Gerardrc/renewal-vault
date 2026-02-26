@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
@@ -12,6 +13,7 @@ struct HomeView: View {
     @State private var showCompleted = false
     @State private var calendarAlertMessage = ""
     @State private var showCalendarAlert = false
+    @State private var showCalendarDeniedAlert = false
 
     private var filtered: [Item] {
         items.filter { item in
@@ -66,6 +68,12 @@ struct HomeView: View {
         } message: {
             Text(calendarAlertMessage)
         }
+        .alert("calendar.access_denied_title".localized, isPresented: $showCalendarDeniedAlert) {
+            Button("common.close".localized, role: .cancel) {}
+            Button("common.go_to_settings".localized) { openSettings() }
+        } message: {
+            Text("calendar.access_denied".localized)
+        }
     }
 
     @ViewBuilder
@@ -117,8 +125,17 @@ struct HomeView: View {
             calendarAlertMessage = "calendar.add_success".localized
             showCalendarAlert = true
         } catch {
-            calendarAlertMessage = (error as? CalendarEventError)?.localizedDescription ?? "calendar.add_failed".localized
-            showCalendarAlert = true
+            if case CalendarEventError.accessDenied = error {
+                showCalendarDeniedAlert = true
+            } else {
+                calendarAlertMessage = "calendar.add_failed".localized
+                showCalendarAlert = true
+            }
         }
+    }
+
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }

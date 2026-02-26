@@ -11,11 +11,15 @@ struct OnboardingView: View {
         ("onboard.export", "doc.richtext")
     ]
 
+    private var isLastPage: Bool { page == pages.count - 1 }
+
     var body: some View {
         VStack {
             HStack {
                 Spacer()
-                Button("common.skip".localized) { appState.finishOnboarding() }
+                if !isLastPage {
+                    Button("common.skip".localized) { appState.finishOnboarding() }
+                }
             }
             .padding([.top, .horizontal])
 
@@ -35,21 +39,18 @@ struct OnboardingView: View {
             .tabViewStyle(.page)
 
             HStack {
-                if page < pages.count - 1 {
+                Spacer()
+                if isLastPage {
+                    Button("onboard.get_started".localized) {
+                        appState.finishOnboarding()
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
                     Button("common.next".localized) {
                         withAnimation { page += 1 }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                 }
-                Spacer()
-                Button("onboard.get_started".localized) {
-                    if page < pages.count - 1 {
-                        withAnimation { page += 1 }
-                    } else {
-                        appState.finishOnboarding()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
             }
             .padding()
         }
