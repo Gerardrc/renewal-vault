@@ -105,3 +105,8 @@
 "item.reminders_help" = "Tap days to select reminder schedule.";
 "item.reminders_none_selected" = "No reminder days selected.";
 "item.reminders_selected_count" = "%d reminder day(s) selected.";
+
+"home.add_to_calendar" = "Add to calendar";
+"calendar.add_success" = "Added to Calendar.";
+"calendar.add_failed" = "Could not add to Calendar.";
+"calendar.access_denied" = "Calendar access denied. Please allow access in Settings.";

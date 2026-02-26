@@ -32,6 +32,8 @@
 		D53C23B32F4CD7DB0001BCCA /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D53C23942F4CD7DA0001BCCA /* OnboardingView.swift */; };
 		D53C23B52F4CD7DB0001BCCA /* RenewalVault.storekit in Resources */ = {isa = PBXBuildFile; fileRef = D53C23982F4CD7DA0001BCCA /* RenewalVault.storekit */; };
 		D53C23B62F4CD8FD0001BCCA /* RenewalVaultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D53C23962F4CD7DA0001BCCA /* RenewalVaultTests.swift */; };
+		D56E8A7F2F506AE400D117FF /* CalendarEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56E8A7E2F506AE400D117FF /* CalendarEventService.swift */; };
+		D56F08E42F5055AC001B7216 /* ReminderDayOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D56F08E32F5055AC001B7216 /* ReminderDayOptions.swift */; };
 		D59064922F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064912F4B0A1A0088A6A3 /* Renewal_VaultUITests.swift */; };
 		D59064942F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59064932F4B0A1A0088A6A3 /* Renewal_VaultUITestsLaunchTests.swift */; };
 /* End PBXBuildFile section */
@@ -84,6 +86,8 @@
 		D53C23942F4CD7DA0001BCCA /* OnboardingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		D53C23962F4CD7DA0001BCCA /* RenewalVaultTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RenewalVaultTests.swift; sourceTree = "<group>"; };
 		D53C23982F4CD7DA0001BCCA /* RenewalVault.storekit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RenewalVault.storekit; sourceTree = "<group>"; };
+		D56E8A7E2F506AE400D117FF /* CalendarEventService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalendarEventService.swift; sourceTree = "<group>"; };
+		D56F08E32F5055AC001B7216 /* ReminderDayOptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReminderDayOptions.swift; sourceTree = "<group>"; };
 		D59064732F4B0A180088A6A3 /* Renewal Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Renewal Vault.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D59064762F4B0A180088A6A3 /* Renewal_VaultApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renewal_VaultApp.swift; sourceTree = "<group>"; };
 		D59064782F4B0A180088A6A3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -166,6 +170,8 @@
 		D53C23672F4CD7DA0001BCCA /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				D56E8A7E2F506AE400D117FF /* CalendarEventService.swift */,
+				D56F08E32F5055AC001B7216 /* ReminderDayOptions.swift */,
 				D53C23682F4CD7DA0001BCCA /* .gitkeep */,
 			);
 			path = Utilities;
@@ -538,6 +544,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D56E8A7F2F506AE400D117FF /* CalendarEventService.swift in Sources */,
 				D53C23B02F4CD7DB0001BCCA /* ItemDetailView.swift in Sources */,
 				D53C23A92F4CD7DB0001BCCA /* SettingsView.swift in Sources */,
 				D53C23B12F4CD7DB0001BCCA /* ItemEditorView.swift in Sources */,
@@ -547,6 +554,7 @@
 				D53C239E2F4CD7DB0001BCCA /* EntitlementService.swift in Sources */,
 				D53C23A62F4CD7DB0001BCCA /* RenewalVaultApp.swift in Sources */,
 				D53C23A42F4CD7DB0001BCCA /* AppState.swift in Sources */,
+				D56F08E42F5055AC001B7216 /* ReminderDayOptions.swift in Sources */,
 				D53C23992F4CD7DB0001BCCA /* VaultPDFExporter.swift in Sources */,
 				D53C23AB2F4CD7DB0001BCCA /* PrivacyView.swift in Sources */,
 				D53C23A52F4CD7DB0001BCCA /* RootRouterView.swift in Sources */,
