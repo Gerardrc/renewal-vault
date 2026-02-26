@@ -81,28 +81,28 @@ struct HomeView: View {
         let sectionItems = filtered.filter { ReminderScheduler.bucket(for: $0) == bucket }
         if !sectionItems.isEmpty {
             Section(title) {
-                ForEach(sectionItems) { item in
+                ForEach(sectionItems.indices, id: \.self) { index in
                     HStack(spacing: 12) {
-                        NavigationLink(destination: ItemDetailView(item: item)) {
+                        NavigationLink(destination: ItemDetailView(item: sectionItems[index])) {
                             VStack(alignment: .leading) {
                                 HStack {
-                                    Text(item.title).font(.headline)
-                                    if item.isCompleted {
+                                    Text(sectionItems[index].title).font(.headline)
+                                    if sectionItems[index].isCompleted {
                                         Text("item.completed_badge".localized)
                                             .font(.caption2)
                                             .padding(4)
                                             .background(.gray.opacity(0.2), in: Capsule())
                                     }
                                 }
-                                Text(HomeView.subtitleText(for: item)) + Text(" · \(item.expiryDate.formatted(date: .abbreviated, time: .omitted))")
+                                Text(sectionItems[index].vault?.name ?? "-") + Text(" · \(sectionItems[index].expiryDate.formatted(date: .abbreviated, time: .omitted))")
                             }
                         }
                         Spacer(minLength: 4)
                         Button {
-                            Task { await addToCalendar(item: item) }
+                            Task { await addToCalendar(item: sectionItems[index]) }
                         } label: {
                             Image(systemName: "calendar.badge.plus")
-                                .foregroundStyle(.accent)
+                                .foregroundColor(.accentColor)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("home.add_to_calendar".localized)
@@ -111,6 +111,7 @@ struct HomeView: View {
             }
         }
     }
+    
 
     static func subtitleText(for item: Item) -> String {
         item.formattedPriceText ?? item.vault?.name ?? "-"
