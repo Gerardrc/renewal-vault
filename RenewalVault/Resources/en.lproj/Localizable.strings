@@ -99,3 +99,9 @@
 "attachment.add_photo" = "Add photo from library";
 "attachment.add_file" = "Add PDF/File";
 "attachment.upgrade_required" = "Upgrade to Pro to add more attachments.";
+
+"vault.non_deletable" = "Default";
+"vault.delete_failed" = "This vault cannot be deleted.";
+"item.reminders_help" = "Tap days to select reminder schedule.";
+"item.reminders_none_selected" = "No reminder days selected.";
+"item.reminders_selected_count" = "%d reminder day(s) selected.";

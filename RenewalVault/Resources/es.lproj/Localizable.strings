@@ -99,3 +99,9 @@
 "attachment.add_photo" = "Añadir foto desde biblioteca";
 "attachment.add_file" = "Añadir PDF/archivo";
 "attachment.upgrade_required" = "Actualiza a Pro para añadir más adjuntos.";
+
+"vault.non_deletable" = "Predeterminada";
+"vault.delete_failed" = "Esta bóveda no se puede eliminar.";
+"item.reminders_help" = "Toca los días para seleccionar los recordatorios.";
+"item.reminders_none_selected" = "No hay días de recordatorio seleccionados.";
+"item.reminders_selected_count" = "%d día(s) de recordatorio seleccionado(s).";

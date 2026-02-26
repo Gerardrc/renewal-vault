@@ -62,6 +62,13 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertEqual(item.vault?.name, "Business")
     }
 
+    func testProtectedPersonalVault() {
+        let protected = Vault(name: "Personal", isSystemDefault: true)
+        let userVault = Vault(name: "Travel")
+        XCTAssertTrue(protected.isProtectedDefault)
+        XCTAssertFalse(userVault.isProtectedDefault)
+    }
+
     func testFreeTierVaultLimit() {
         XCTAssertFalse(FeatureGate.canCreateVault(currentCount: 1, tier: .free))
         XCTAssertTrue(FeatureGate.canCreateVault(currentCount: 1, tier: .pro))
@@ -70,6 +77,18 @@ final class RenewalVaultTests: XCTestCase {
     func testAttachmentLimitGate() {
         XCTAssertFalse(FeatureGate.canAddAttachment(currentCount: 3, tier: .free))
         XCTAssertTrue(FeatureGate.canAddAttachment(currentCount: 3, tier: .pro))
+    }
+
+    func testReminderOptionsCustomAddAndToggle() {
+        var selected = [30]
+        selected = ReminderDayOptions.toggle(day: 45, selected: selected)
+        XCTAssertTrue(selected.contains(45))
+
+        selected = ReminderDayOptions.toggle(day: 45, selected: selected)
+        XCTAssertFalse(selected.contains(45))
+
+        XCTAssertNil(ReminderDayOptions.parseCustom("0"))
+        XCTAssertEqual(ReminderDayOptions.parseCustom(" 15 "), 15)
     }
 
     @MainActor

@@ -14,7 +14,7 @@ struct ItemEditorView: View {
     @State private var issuer = ""
     @State private var expiryDate = Date().addingTimeInterval(60*60*24*30)
     @State private var notes = ""
-    @State private var reminderDays = [30,14,7,1]
+    @State private var reminderDays: [Int] = []
     @State private var selectedVaultID: UUID?
 
     var body: some View {
@@ -46,6 +46,7 @@ struct ItemEditorView: View {
     private func load() {
         guard let item else {
             selectedVaultID = vaults.first?.id
+            reminderDays = []
             return
         }
         title = item.title
@@ -53,14 +54,14 @@ struct ItemEditorView: View {
         issuer = item.issuer ?? ""
         expiryDate = item.expiryDate
         notes = item.notes
-        reminderDays = item.reminderScheduleDays
+        reminderDays = ReminderDayOptions.normalized(item.reminderScheduleDays)
         selectedVaultID = item.vault?.id ?? vaults.first?.id
     }
 
     private func save() {
         guard !title.isEmpty else { return }
         if item == nil && !FeatureGate.canCreateItem(currentCount: items.count, tier: entitlement.isPro ? .pro : .free) { return }
-        let normalized = Array(Set(reminderDays.filter { $0 >= 1 })).sorted(by: >)
+        let normalized = ReminderDayOptions.normalized(reminderDays)
         let selectedVault = vaults.first(where: { $0.id == selectedVaultID }) ?? vaults.first
 
         if let item {
@@ -86,67 +87,89 @@ struct ItemEditorView: View {
 struct ReminderEditorView: View {
     @Binding var reminderDays: [Int]
     @State private var custom = ""
+    @State private var customOptions: [Int] = []
     @FocusState private var customFocused: Bool
-    let common = [90,60,30,14,7,1]
+
+    private var availableDays: [Int] {
+        ReminderDayOptions.availableDays(selected: reminderDays, customAvailable: customOptions)
+    }
 
     var body: some View {
         Section("item.reminders".localized) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 64))]) {
-                ForEach(common, id: \.self) { day in
-                    let selected = reminderDays.contains(day)
-                    Button("\(day)") {
-                        if selected {
-                            reminderDays.removeAll { $0 == day }
-                        } else {
-                            reminderDays.append(day)
-                            reminderDays = Array(Set(reminderDays)).sorted(by: >)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(selected ? .blue : .gray)
-                }
-            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("item.reminders_help".localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            let customSelected = reminderDays.filter { !common.contains($0) }.sorted(by: >)
-            if !customSelected.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("item.selected_custom".localized)
+                FlowWrap(items: availableDays) { day in
+                    let selected = reminderDays.contains(day)
+                    Button {
+                        reminderDays = ReminderDayOptions.toggle(day: day, selected: reminderDays)
+                    } label: {
+                        Text("\(day)")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minWidth: 44)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(selected ? Color.accentColor : Color.gray.opacity(0.15), in: Capsule())
+                            .foregroundStyle(selected ? Color.white : Color.primary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if reminderDays.isEmpty {
+                    Text("item.reminders_none_selected".localized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 64))]) {
-                        ForEach(customSelected, id: \.self) { day in
-                            Button("\(day)") {
-                                reminderDays.removeAll { $0 == day }
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
+                } else {
+                    Text(String(format: "item.reminders_selected_count".localized, reminderDays.count))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    TextField("item.custom_days".localized, text: $custom)
+                        .keyboardType(.numberPad)
+                        .focused($customFocused)
+                    Button("common.add".localized, action: addCustomDay)
                 }
             }
-
-            HStack {
-                TextField("item.custom_days".localized, text: $custom)
-                    .keyboardType(.numberPad)
-                    .focused($customFocused)
-                Button("common.add".localized, action: addCustomDay)
-            }
+        }
+        .onAppear {
+            customOptions = reminderDays.filter { !ReminderDayOptions.presets.contains($0) }
         }
     }
 
     private func addCustomDay() {
-        let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let day = Int(trimmed), day >= 1 else {
+        guard let day = ReminderDayOptions.parseCustom(custom) else {
             custom = ""
             return
         }
-        guard !reminderDays.contains(day) else {
-            custom = ""
-            customFocused = false
-            return
+
+        if !customOptions.contains(day) {
+            customOptions.append(day)
+            customOptions = ReminderDayOptions.normalized(customOptions)
         }
-        reminderDays.append(day)
-        reminderDays = Array(Set(reminderDays)).sorted(by: >)
+
+        if !reminderDays.contains(day) {
+            reminderDays.append(day)
+            reminderDays = ReminderDayOptions.normalized(reminderDays)
+        }
+
         custom = ""
         customFocused = false
+    }
+}
+
+private struct FlowWrap<Item: Hashable, Content: View>: View {
+    let items: [Item]
+    let content: (Item) -> Content
+
+    private let columns = [GridItem(.adaptive(minimum: 72), spacing: 8)]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            ForEach(items, id: \.self, content: content)
+        }
     }
 }
