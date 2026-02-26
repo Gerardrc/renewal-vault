@@ -21,15 +21,27 @@ struct ItemDetailView: View {
     var body: some View {
         List {
             Section("item.details".localized) {
-                Text(item.title)
-                Text("category.\(item.category)".localized)
-                Text(item.expiryDate.formatted(date: .abbreviated, time: .omitted))
+                DetailRow(label: "item.title".localized, value: item.title)
+                DetailRow(label: "item.category".localized, value: "category.\(item.category)".localized)
+                DetailRow(label: "item.expiry".localized, value: item.expiryDate.formatted(date: .abbreviated, time: .omitted))
+
+                if let issuer = nonEmpty(item.issuer) {
+                    DetailRow(label: "item.issuer".localized, value: issuer)
+                }
+
+                if let price = item.formattedPriceText {
+                    DetailRow(label: "item.price".localized, value: price)
+                }
+
                 if item.isCompleted {
                     Text("item.completed_badge".localized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text(item.notes)
+
+                if let notes = nonEmpty(item.notes) {
+                    DetailRow(label: "item.notes".localized, value: notes)
+                }
             }
 
             Section("item.attachments".localized) {
@@ -117,6 +129,12 @@ struct ItemDetailView: View {
         }
     }
 
+    private func nonEmpty(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
     private func canAddAttachment() -> Bool {
         FeatureGate.canAddAttachment(currentCount: item.attachments.count, tier: entitlement.isPro ? .pro : .free)
     }
@@ -158,5 +176,18 @@ struct ItemDetailView: View {
         try? modelContext.save()
         appState.showMessage("item.deleted_success".localized)
         dismiss()
+    }
+}
+
+private struct DetailRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top) {
+            Text(label).foregroundStyle(.secondary)
+            Spacer()
+            Text(value).multilineTextAlignment(.trailing)
+        }
     }
 }

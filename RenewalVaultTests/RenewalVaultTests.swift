@@ -129,6 +129,15 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertEqual(item.formattedPriceText, "$9.99")
     }
 
+    func testHomeSubtitlePrefersPriceOverVault() {
+        let vault = Vault(name: "Personal")
+        let priced = Item(title: "Plan", category: "subscription", expiryDate: .now, priceAmount: 29.99, priceCurrency: "€", vault: vault)
+        let noPrice = Item(title: "Doc", category: "passport", expiryDate: .now, vault: vault)
+
+        XCTAssertEqual(HomeView.subtitleText(for: priced), "€29.99")
+        XCTAssertEqual(HomeView.subtitleText(for: noPrice), "Personal")
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()
