@@ -4,6 +4,7 @@ import SwiftData
 struct VaultListView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var entitlement: EntitlementService
+    @State private var showUpgradeAlert = false
     @Query(sort: \Vault.createdAt) private var vaults: [Vault]
     @State private var name = ""
 
@@ -20,11 +21,19 @@ struct VaultListView: View {
             }
         }
         .navigationTitle("tab.vaults".localized)
+        .alert("common.notice".localized, isPresented: $showUpgradeAlert) {
+            Button("common.ok".localized, role: .cancel) {}
+        } message: {
+            Text("vault.upgrade_required".localized)
+        }
     }
 
     private func add() {
         guard !name.isEmpty else { return }
-        guard FeatureGate.canCreateVault(currentCount: vaults.count, tier: entitlement.isPro ? .pro : .free) else { return }
+        guard FeatureGate.canCreateVault(currentCount: vaults.count, tier: entitlement.isPro ? .pro : .free) else {
+            showUpgradeAlert = true
+            return
+        }
         modelContext.insert(Vault(name: name))
         try? modelContext.save()
         name = ""

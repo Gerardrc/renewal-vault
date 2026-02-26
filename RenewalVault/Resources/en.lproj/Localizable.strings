@@ -43,6 +43,7 @@
 "item.notes" = "Notes";
 "item.reminders" = "Reminders (days before)";
 "item.custom_days" = "Custom days";
+"item.selected_custom" = "Custom reminders";
 "item.add" = "Add Item";
 "item.edit" = "Edit Item";
 "item.detail" = "Item Detail";
@@ -89,3 +90,12 @@
 "notification.title" = "Renewal Reminder";
 "notification.expired" = "This item is expired.";
 "notification.expires_in" = "%@ expires in %d day(s).";
+
+
+"common.notice" = "Notice";
+"common.ok" = "OK";
+"vault.upgrade_required" = "Upgrade to Pro to add new Vaults.";
+"item.deleted_success" = "Item deleted successfully.";
+"attachment.add_photo" = "Add photo from library";
+"attachment.add_file" = "Add PDF/File";
+"attachment.upgrade_required" = "Upgrade to Pro to add more attachments.";

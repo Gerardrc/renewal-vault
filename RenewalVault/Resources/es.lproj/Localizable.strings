@@ -43,6 +43,7 @@
 "item.notes" = "Notas";
 "item.reminders" = "Recordatorios (días antes)";
 "item.custom_days" = "Días personalizados";
+"item.selected_custom" = "Recordatorios personalizados";
 "item.add" = "Agregar elemento";
 "item.edit" = "Editar elemento";
 "item.detail" = "Detalle";
@@ -89,3 +90,12 @@
 "notification.title" = "Recordatorio de renovación";
 "notification.expired" = "Este elemento está vencido.";
 "notification.expires_in" = "%@ vence en %d día(s).";
+
+
+"common.notice" = "Aviso";
+"common.ok" = "Aceptar";
+"vault.upgrade_required" = "Actualiza a Pro para añadir nuevas bóvedas.";
+"item.deleted_success" = "Elemento eliminado correctamente.";
+"attachment.add_photo" = "Añadir foto desde biblioteca";
+"attachment.add_file" = "Añadir PDF/archivo";
+"attachment.upgrade_required" = "Actualiza a Pro para añadir más adjuntos.";

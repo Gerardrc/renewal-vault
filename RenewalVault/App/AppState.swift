@@ -1,10 +1,16 @@
 import Foundation
 import SwiftData
 
+struct TransientMessage: Identifiable, Equatable {
+    let id = UUID()
+    let text: String
+}
+
 @MainActor
 final class AppState: ObservableObject {
     @Published var hasChosenLanguage: Bool = false
     @Published var hasCompletedOnboarding: Bool = false
+    @Published var transientMessage: TransientMessage?
 
     private let onboardingKey = "onboarding.completed"
 
@@ -36,5 +42,9 @@ final class AppState: ObservableObject {
     func resetOnboarding() {
         UserDefaults.standard.set(false, forKey: onboardingKey)
         hasCompletedOnboarding = false
+    }
+
+    func showMessage(_ text: String) {
+        transientMessage = TransientMessage(text: text)
     }
 }

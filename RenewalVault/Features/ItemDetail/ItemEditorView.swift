@@ -60,7 +60,7 @@ struct ItemEditorView: View {
     private func save() {
         guard !title.isEmpty else { return }
         if item == nil && !FeatureGate.canCreateItem(currentCount: items.count, tier: entitlement.isPro ? .pro : .free) { return }
-        let normalized = Array(Set(reminderDays.filter { $0 >= 0 })).sorted(by: >)
+        let normalized = Array(Set(reminderDays.filter { $0 >= 1 })).sorted(by: >)
         let selectedVault = vaults.first(where: { $0.id == selectedVaultID }) ?? vaults.first
 
         if let item {
@@ -86,7 +86,8 @@ struct ItemEditorView: View {
 struct ReminderEditorView: View {
     @Binding var reminderDays: [Int]
     @State private var custom = ""
-    let common = [90,60,30,14,7,3,1,0]
+    @FocusState private var customFocused: Bool
+    let common = [90,60,30,14,7,1]
 
     var body: some View {
         Section("item.reminders".localized) {
@@ -94,17 +95,58 @@ struct ReminderEditorView: View {
                 ForEach(common, id: \.self) { day in
                     let selected = reminderDays.contains(day)
                     Button("\(day)") {
-                        if selected { reminderDays.removeAll { $0 == day } } else { reminderDays.append(day) }
-                    }.buttonStyle(.borderedProminent).tint(selected ? .blue : .gray)
+                        if selected {
+                            reminderDays.removeAll { $0 == day }
+                        } else {
+                            reminderDays.append(day)
+                            reminderDays = Array(Set(reminderDays)).sorted(by: >)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(selected ? .blue : .gray)
                 }
             }
+
+            let customSelected = reminderDays.filter { !common.contains($0) }.sorted(by: >)
+            if !customSelected.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("item.selected_custom".localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 64))]) {
+                        ForEach(customSelected, id: \.self) { day in
+                            Button("\(day)") {
+                                reminderDays.removeAll { $0 == day }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+            }
+
             HStack {
                 TextField("item.custom_days".localized, text: $custom)
-                Button("common.add".localized) {
-                    if let d = Int(custom), d >= 0, !reminderDays.contains(d) { reminderDays.append(d) }
-                    custom = ""
-                }
+                    .keyboardType(.numberPad)
+                    .focused($customFocused)
+                Button("common.add".localized, action: addCustomDay)
             }
         }
+    }
+
+    private func addCustomDay() {
+        let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let day = Int(trimmed), day >= 1 else {
+            custom = ""
+            return
+        }
+        guard !reminderDays.contains(day) else {
+            custom = ""
+            customFocused = false
+            return
+        }
+        reminderDays.append(day)
+        reminderDays = Array(Set(reminderDays)).sorted(by: >)
+        custom = ""
+        customFocused = false
     }
 }

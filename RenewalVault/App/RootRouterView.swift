@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootRouterView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var languageManager: LanguageManager
 
     var body: some View {
         Group {
@@ -11,22 +12,28 @@ struct RootRouterView: View {
                 OnboardingView()
             } else {
                 MainTabView()
+                    .id(languageManager.selectedLanguage.rawValue)
             }
         }
     }
 }
 
 struct MainTabView: View {
+    @EnvironmentObject private var appState: AppState
+
     var body: some View {
         TabView {
             NavigationStack { HomeView() }
-                .tabItem { Label("tab.home".localized, systemImage: "house") }
+                .tabItem { Label(LocalizedStringKey("tab.home"), systemImage: "house") }
 
             NavigationStack { VaultListView() }
-                .tabItem { Label("tab.vaults".localized, systemImage: "archivebox") }
+                .tabItem { Label(LocalizedStringKey("tab.vaults"), systemImage: "archivebox") }
 
             NavigationStack { SettingsView() }
-                .tabItem { Label("tab.settings".localized, systemImage: "gear") }
+                .tabItem { Label(LocalizedStringKey("tab.settings"), systemImage: "gear") }
+        }
+        .alert(item: $appState.transientMessage) { message in
+            Alert(title: Text("common.notice".localized), message: Text(message.text), dismissButton: .default(Text("common.ok".localized)))
         }
     }
 }

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Renewal_Vault
+@testable import RenewalVault
 
 final class RenewalVaultTests: XCTestCase {
     func testGroupingLogic() {
@@ -60,6 +60,16 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertEqual(item.vault?.name, "Personal")
         item.vault = v2
         XCTAssertEqual(item.vault?.name, "Business")
+    }
+
+    func testFreeTierVaultLimit() {
+        XCTAssertFalse(FeatureGate.canCreateVault(currentCount: 1, tier: .free))
+        XCTAssertTrue(FeatureGate.canCreateVault(currentCount: 1, tier: .pro))
+    }
+
+    func testAttachmentLimitGate() {
+        XCTAssertFalse(FeatureGate.canAddAttachment(currentCount: 3, tier: .free))
+        XCTAssertTrue(FeatureGate.canAddAttachment(currentCount: 3, tier: .pro))
     }
 
     @MainActor
