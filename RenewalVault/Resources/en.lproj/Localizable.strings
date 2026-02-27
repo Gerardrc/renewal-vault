@@ -130,3 +130,13 @@
 "vault.create_action" = "Create";
 "vault.icon" = "Vault icon";
 "vault.empty_items" = "No items in this vault yet.";
+
+"tab.dashboard" = "Dashboard";
+"dashboard.locked.title" = "Dashboard is a Pro feature";
+"dashboard.locked.body" = "Unlock planning insights, payment totals, and month-by-month renewals with Pro.";
+"dashboard.summary.year" = "To pay this year";
+"dashboard.summary.next_month" = "To pay next month";
+"dashboard.summary.paid" = "Already paid";
+"dashboard.total.none" = "No priced renewals";
+"dashboard.empty" = "No upcoming renewals.";
+"dashboard.multi_currency_notice" = "Totals are shown separately per currency.";

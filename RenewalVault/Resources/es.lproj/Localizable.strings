@@ -130,3 +130,13 @@
 "vault.create_action" = "Crear";
 "vault.icon" = "Icono de la bóveda";
 "vault.empty_items" = "Todavía no hay elementos en esta bóveda.";
+
+"tab.dashboard" = "Panel";
+"dashboard.locked.title" = "El Panel es una función Pro";
+"dashboard.locked.body" = "Desbloquea análisis de planificación, totales de pago y renovaciones por mes con Pro.";
+"dashboard.summary.year" = "Por pagar este año";
+"dashboard.summary.next_month" = "Por pagar el próximo mes";
+"dashboard.summary.paid" = "Ya pagado";
+"dashboard.total.none" = "No hay renovaciones con precio";
+"dashboard.empty" = "No hay renovaciones próximas.";
+"dashboard.multi_currency_notice" = "Los totales se muestran por separado por moneda.";

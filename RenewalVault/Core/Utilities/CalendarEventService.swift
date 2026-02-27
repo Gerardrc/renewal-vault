@@ -44,19 +44,6 @@ final class CalendarEventService {
     func eventStore() -> EKEventStore {
         store
     }
-    
-    @MainActor
-    func prepareEditorEvent(for item: Item) -> EKEvent {
-        let event = EKEvent(eventStore: store)
-        event.title = Self.titleText(for: item)
-        event.notes = Self.notesText(for: item)
-
-        let start = Self.defaultStartDate(for: item.expiryDate)
-        event.startDate = start
-        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
-        event.calendar = store.defaultCalendarForNewEvents
-        return event
-    }
 
     @MainActor
     func prepareExpiryEvent(for item: Item) async throws -> EKEvent {
