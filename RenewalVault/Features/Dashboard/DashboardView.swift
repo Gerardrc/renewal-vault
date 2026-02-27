@@ -3,6 +3,7 @@ import SwiftData
 
 struct DashboardView: View {
     @EnvironmentObject private var entitlement: EntitlementService
+    @EnvironmentObject private var languageManager: LanguageManager
     @Query(sort: \Item.expiryDate) private var items: [Item]
     @State private var showPaywall = false
     @State private var showFilterSheet = false
@@ -47,7 +48,11 @@ struct DashboardView: View {
     private var proDashboardContent: some View {
         ScrollView {
             VStack(spacing: 16) {
-                DashboardSummaryCard(title: "dashboard.summary.year".localized, totals: summary.yearToPayTotals)
+                DashboardSummaryCard(
+                    title: "dashboard.summary.year".localized,
+                    totals: summary.yearToPayTotals,
+                    vaultBreakdown: summary.yearVaultTotals
+                )
 
                 HStack(alignment: .top, spacing: 10) {
                     DashboardSummaryCard(title: "dashboard.summary.paid".localized, totals: summary.paidTotals, compact: true)
@@ -69,7 +74,7 @@ struct DashboardView: View {
                 } else {
                     ForEach(summary.groupedRenewals) { group in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(group.monthStart.formatted(.dateTime.month(.wide).year()))
+                            Text(Self.monthTitle(for: group.monthStart, locale: languageManager.locale))
                                 .font(.headline)
                             ForEach(group.items) { item in
                                 NavigationLink(destination: ItemDetailView(item: item)) {
@@ -85,6 +90,13 @@ struct DashboardView: View {
             .padding()
         }
         .background(Color(uiColor: .systemGroupedBackground))
+    }
+
+    static func monthTitle(for date: Date, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: date).capitalized
     }
 
     private var hasMultiCurrency: Bool {
@@ -131,11 +143,19 @@ private struct DashboardLockedView: View {
     }
 }
 
-
 private struct DashboardSummaryCard: View {
     let title: String
     let totals: [DashboardCurrencyTotal]
     var compact: Bool = false
+    var vaultBreakdown: [DashboardVaultCurrencyTotal] = []
+
+    private var canShowBreakdown: Bool {
+        !compact && !vaultBreakdown.isEmpty && Set(vaultBreakdown.map { $0.currency }).count == 1
+    }
+
+    private var hasMultiCurrencyBreakdown: Bool {
+        !compact && Set(vaultBreakdown.map { $0.currency }).count > 1
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -152,6 +172,18 @@ private struct DashboardSummaryCard: View {
                         .font(.headline)
                 }
             }
+
+            if canShowBreakdown {
+                DashboardVaultBreakdownView(vaultTotals: vaultBreakdown)
+                    .padding(.top, 2)
+            }
+
+            if hasMultiCurrencyBreakdown {
+                Text("dashboard.chart_hidden_multi_currency".localized)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, minHeight: compact ? 108 : 124, alignment: .leading)
@@ -161,6 +193,47 @@ private struct DashboardSummaryCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(.gray.opacity(0.18), lineWidth: 1)
         )
+    }
+}
+
+private struct DashboardVaultBreakdownView: View {
+    let vaultTotals: [DashboardVaultCurrencyTotal]
+
+    private var ordered: [DashboardVaultCurrencyTotal] {
+        vaultTotals.sorted { $0.amount > $1.amount }
+    }
+
+    private var maxAmount: Double {
+        ordered.first?.amount ?? 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(ordered) { total in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(total.vaultName)
+                            .font(.caption2)
+                            .lineLimit(1)
+                        Spacer(minLength: 6)
+                        Text(total.formattedText)
+                            .font(.caption2.weight(.semibold))
+                    }
+
+                    GeometryReader { geometry in
+                        let ratio = maxAmount > 0 ? min(1, total.amount / maxAmount) : 0
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color.gray.opacity(0.15))
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color.accentColor.opacity(0.7))
+                                .frame(width: max(4, geometry.size.width * ratio))
+                        }
+                    }
+                    .frame(height: 6)
+                }
+            }
+        }
     }
 }
 

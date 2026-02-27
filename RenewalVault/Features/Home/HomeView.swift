@@ -16,13 +16,8 @@ struct HomeView: View {
     @State private var calendarAlertMessage = ""
     @State private var showCalendarAlert = false
     @State private var showCalendarDeniedAlert = false
-    @State private var calendarDraft: CalendarDraft?
-
-    private struct CalendarDraft: Identifiable {
-        let id = UUID()
-        let eventStore: EKEventStore
-        let event: EKEvent
-    }
+    @State private var editingCalendarEvent: EKEvent?
+    @State private var showCalendarEditor = false
 
     private var filtered: [Item] {
         items.filter { item in
@@ -34,6 +29,19 @@ struct HomeView: View {
             return qOK && vOK && cOK && upOK && completionOK
         }
     }
+
+    private var sectionedItems: (completed: [Item], active: [Item]) {
+        HomeView.displaySections(from: filtered, showCompleted: showCompleted)
+    }
+
+    private var completedItems: [Item] {
+        sectionedItems.completed
+    }
+
+    private var activeItems: [Item] {
+        sectionedItems.active
+    }
+
 
     var body: some View {
         List {
@@ -53,6 +61,10 @@ struct HomeView: View {
                 }
                 Toggle("home.upcoming_only".localized, isOn: $upcomingOnly)
                 Toggle("home.show_completed".localized, isOn: $showCompleted)
+            }
+
+            if showCompleted && !completedItems.isEmpty {
+                completedSection
             }
 
             bucketSection(title: "home.expiring_soon".localized, bucket: .soon)
@@ -83,17 +95,49 @@ struct HomeView: View {
         } message: {
             Text("calendar.access_denied".localized)
         }
-        .sheet(item: $calendarDraft) { draft in
-            CalendarEventEditorSheet(
-                eventStore: draft.eventStore,
-                event: draft.event
-            )
+        .sheet(isPresented: $showCalendarEditor, onDismiss: {
+            editingCalendarEvent = nil
+        }) {
+            if let event = editingCalendarEvent {
+                CalendarEventEditorSheet(eventStore: CalendarEventService.shared.eventStore(), event: event)
+            }
+        }
+    }
+
+    private var completedSection: some View {
+        Section("home.completed".localized) {
+            ForEach(completedItems.indices, id: \.self) { index in
+                HStack(spacing: 12) {
+                    NavigationLink(destination: ItemDetailView(item: completedItems[index])) {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(completedItems[index].title).font(.headline)
+                                Text("item.completed_badge".localized)
+                                    .font(.caption2)
+                                    .padding(4)
+                                    .background(.gray.opacity(0.2), in: Capsule())
+                            }
+                            Text(HomeView.subtitleText(for: completedItems[index])) +
+                            Text(" · \(completedItems[index].expiryDate.formatted(date: .abbreviated, time: .omitted))")
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    Button {
+                        Task { await addToCalendar(item: completedItems[index]) }
+                    } label: {
+                        Image(systemName: "calendar.badge.plus")
+                            .foregroundColor(.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("home.add_to_calendar".localized)
+                }
+            }
         }
     }
 
     @ViewBuilder
     private func bucketSection(title: String, bucket: ItemBucket) -> some View {
-        let sectionItems = filtered.filter { ReminderScheduler.bucket(for: $0) == bucket }
+        let sectionItems = activeItems.filter { ReminderScheduler.bucket(for: $0) == bucket }
         if !sectionItems.isEmpty {
             Section(title) {
                 ForEach(sectionItems.indices, id: \.self) { index in
@@ -128,6 +172,12 @@ struct HomeView: View {
         }
     }
 
+    static func displaySections(from items: [Item], showCompleted: Bool) -> (completed: [Item], active: [Item]) {
+        let active = items.filter { !$0.isCompleted }
+        let completed = showCompleted ? items.filter { $0.isCompleted } : []
+        return (completed: completed, active: active)
+    }
+
     static func subtitleText(for item: Item) -> String {
         item.formattedPriceText ?? item.vault?.name ?? "-"
     }
@@ -135,12 +185,16 @@ struct HomeView: View {
     @MainActor
     private func addToCalendar(item: Item) async {
         do {
-            let store = CalendarEventService.shared.eventStore()
-            let event = CalendarEventService.shared.prepareEditorEvent(for: item)
-            calendarDraft = CalendarDraft(eventStore: store, event: event)
+            let event = try await CalendarEventService.shared.prepareExpiryEvent(for: item)
+            editingCalendarEvent = event
+            showCalendarEditor = true
         } catch {
-            calendarAlertMessage = "calendar.add_failed".localized
-            showCalendarAlert = true
+            if case CalendarEventError.accessDenied = error {
+                showCalendarDeniedAlert = true
+            } else {
+                calendarAlertMessage = "calendar.add_failed".localized
+                showCalendarAlert = true
+            }
         }
     }
 
@@ -174,4 +228,3 @@ private struct CalendarEventEditorSheet: UIViewControllerRepresentable {
         }
     }
 }
-

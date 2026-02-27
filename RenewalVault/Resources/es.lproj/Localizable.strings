@@ -158,3 +158,7 @@
 "dashboard.filter.date.month_year" = "Mes y año";
 "dashboard.filter.year" = "Año";
 "dashboard.filter.month" = "Mes";
+
+"home.completed" = "Completados";
+
+"dashboard.chart_hidden_multi_currency" = "El gráfico por bóveda solo se muestra con totales anuales de una sola moneda.";

@@ -220,11 +220,12 @@ final class RenewalVaultTests: XCTestCase {
         let itemA = Item(title: "A", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 8, day: 1))!, priceAmount: 10, priceCurrency: "€")
         let itemB = Item(title: "B", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 9, day: 1))!, priceAmount: 15, priceCurrency: "€")
         let itemC = Item(title: "C", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!, priceAmount: 20, priceCurrency: "$")
+        let completed = Item(title: "Paid", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 2, day: 1))!, priceAmount: 5, priceCurrency: "€", isCompleted: true)
         let noPrice = Item(title: "D", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 11, day: 1))!)
 
-        let summary = DashboardCalculator.summary(items: [itemA, itemB, itemC, noPrice], now: now, calendar: calendar)
+        let summary = DashboardCalculator.summary(items: [itemA, itemB, itemC, completed, noPrice], now: now, calendar: calendar)
         XCTAssertEqual(summary.yearToPayTotals.count, 2)
-        XCTAssertEqual(summary.yearToPayTotals.first(where: { $0.currency == "€" })?.amount, 25)
+        XCTAssertEqual(summary.yearToPayTotals.first(where: { $0.currency == "€" })?.amount, 30)
         XCTAssertEqual(summary.yearToPayTotals.first(where: { $0.currency == "$" })?.amount, 20)
     }
 
@@ -312,6 +313,46 @@ final class RenewalVaultTests: XCTestCase {
     func testVaultCardDoesNotShowDefaultBadge() {
         let personal = Vault(name: "Personal", isSystemDefault: true)
         XCTAssertFalse(VaultCardView.shouldShowDefaultBadge(for: personal))
+    }
+
+
+
+    func testDashboardYearlyVaultAggregationForChart() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 10))!
+
+        let homeVault = Vault(name: "Home")
+        let carVault = Vault(name: "Car")
+
+        let homeA = Item(title: "A", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 5, day: 1))!, priceAmount: 40, priceCurrency: "€", vault: homeVault)
+        let homeB = Item(title: "B", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 1))!, priceAmount: 10, priceCurrency: "€", isCompleted: true, vault: homeVault)
+        let car = Item(title: "C", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 7, day: 1))!, priceAmount: 25, priceCurrency: "€", vault: carVault)
+
+        let summary = DashboardCalculator.summary(items: [homeA, homeB, car], now: now, calendar: calendar)
+        XCTAssertEqual(summary.yearVaultTotals.first(where: { $0.vaultName == "Home" && $0.currency == "€" })?.amount, 50)
+        XCTAssertEqual(summary.yearVaultTotals.first(where: { $0.vaultName == "Car" && $0.currency == "€" })?.amount, 25)
+    }
+
+    func testDashboardMonthFormattingRespectsSelectedLocale() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let date = calendar.date(from: DateComponents(year: 2026, month: 3, day: 12))!
+
+        let english = DashboardView.monthTitle(for: date, locale: Locale(identifier: "en"))
+        let spanish = DashboardView.monthTitle(for: date, locale: Locale(identifier: "es"))
+
+        XCTAssertTrue(english.lowercased().contains("march"))
+        XCTAssertTrue(spanish.lowercased().contains("marzo"))
+    }
+
+    func testHomeCompletedSectionAppearsFirstWhenEnabled() {
+        let completed = Item(title: "Done", category: "other", expiryDate: .now, isCompleted: true)
+        let active = Item(title: "Open", category: "other", expiryDate: .now)
+        let sections = HomeView.displaySections(from: [completed, active], showCompleted: true)
+
+        XCTAssertEqual(sections.completed.map(\.title), ["Done"])
+        XCTAssertEqual(sections.active.map(\.title), ["Open"])
     }
 
     @MainActor

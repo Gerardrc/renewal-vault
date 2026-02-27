@@ -74,6 +74,7 @@ final class CalendarEventService {
         return event
     }
 
+
     static func titleText(for item: Item) -> String {
         if let price = item.formattedPriceText {
             return "\(item.title) (\(price))"
@@ -107,4 +108,3 @@ enum CalendarEventError: LocalizedError {
         }
     }
 }
-
