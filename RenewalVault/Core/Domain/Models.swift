@@ -5,14 +5,23 @@ import SwiftData
 final class Vault {
     @Attribute(.unique) var id: UUID
     var name: String
+    var iconSystemName: String
     var createdAt: Date
     var updatedAt: Date
     var isSystemDefault: Bool
     @Relationship(deleteRule: .cascade, inverse: \Item.vault) var items: [Item] = []
 
-    init(id: UUID = UUID(), name: String, createdAt: Date = .now, updatedAt: Date = .now, isSystemDefault: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        iconSystemName: String = VaultIcon.person.systemName,
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        isSystemDefault: Bool = false
+    ) {
         self.id = id
         self.name = name
+        self.iconSystemName = iconSystemName
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isSystemDefault = isSystemDefault
@@ -140,6 +149,20 @@ enum ItemCategory: String, CaseIterable, Identifiable {
     }
 }
 
+enum VaultIcon: String, CaseIterable, Identifiable {
+    case person = "person.crop.circle"
+    case house = "house"
+    case briefcase = "briefcase"
+    case pawprint = "pawprint"
+    case car = "car"
+    case heart = "heart"
+    case doc = "doc"
+    case star = "star"
+    case suitcase = "suitcase"
+
+    var id: String { rawValue }
+    var systemName: String { rawValue }
+}
 
 extension Item {
     func markNoRenewal() {
@@ -155,13 +178,18 @@ extension Item {
     }
 }
 
-
 extension Vault {
     var isProtectedDefault: Bool {
         isSystemDefault || name.caseInsensitiveCompare("Personal") == .orderedSame
     }
-}
 
+    var resolvedIconSystemName: String {
+        if iconSystemName.isEmpty {
+            return isProtectedDefault ? "person.crop.circle" : VaultIcon.person.systemName
+        }
+        return iconSystemName
+    }
+}
 
 extension Item {
     var formattedPriceText: String? {

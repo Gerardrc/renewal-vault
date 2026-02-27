@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import EventKit
+import EventKitUI
 
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
@@ -14,6 +16,13 @@ struct HomeView: View {
     @State private var calendarAlertMessage = ""
     @State private var showCalendarAlert = false
     @State private var showCalendarDeniedAlert = false
+    @State private var calendarDraft: CalendarDraft?
+
+    private struct CalendarDraft: Identifiable {
+        let id = UUID()
+        let eventStore: EKEventStore
+        let event: EKEvent
+    }
 
     private var filtered: [Item] {
         items.filter { item in
@@ -74,6 +83,12 @@ struct HomeView: View {
         } message: {
             Text("calendar.access_denied".localized)
         }
+        .sheet(item: $calendarDraft) { draft in
+            CalendarEventEditorSheet(
+                eventStore: draft.eventStore,
+                event: draft.event
+            )
+        }
     }
 
     @ViewBuilder
@@ -94,7 +109,8 @@ struct HomeView: View {
                                             .background(.gray.opacity(0.2), in: Capsule())
                                     }
                                 }
-                                Text(sectionItems[index].vault?.name ?? "-") + Text(" · \(sectionItems[index].expiryDate.formatted(date: .abbreviated, time: .omitted))")
+                                Text(HomeView.subtitleText(for: sectionItems[index])) +
+                                Text(" · \(sectionItems[index].expiryDate.formatted(date: .abbreviated, time: .omitted))")
                             }
                         }
                         Spacer(minLength: 4)
@@ -119,21 +135,42 @@ struct HomeView: View {
     @MainActor
     private func addToCalendar(item: Item) async {
         do {
-            try await CalendarEventService.shared.addExpiryEvent(for: item)
-            calendarAlertMessage = "calendar.add_success".localized
-            showCalendarAlert = true
+            let store = CalendarEventService.shared.eventStore()
+            let event = CalendarEventService.shared.prepareEditorEvent(for: item)
+            calendarDraft = CalendarDraft(eventStore: store, event: event)
         } catch {
-            if case CalendarEventError.accessDenied = error {
-                showCalendarDeniedAlert = true
-            } else {
-                calendarAlertMessage = "calendar.add_failed".localized
-                showCalendarAlert = true
-            }
+            calendarAlertMessage = "calendar.add_failed".localized
+            showCalendarAlert = true
         }
     }
 
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+private struct CalendarEventEditorSheet: UIViewControllerRepresentable {
+    let eventStore: EKEventStore
+    let event: EKEvent
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIViewController(context: Context) -> EKEventEditViewController {
+        let controller = EKEventEditViewController()
+        controller.eventStore = eventStore
+        controller.event = event
+        controller.editViewDelegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: EKEventEditViewController, context: Context) {}
+
+    final class Coordinator: NSObject, EKEventEditViewDelegate {
+        func eventEditViewController(_ controller: EKEventEditViewController, didCompleteWith action: EKEventEditViewAction) {
+            controller.dismiss(animated: true)
+        }
     }
 }
