@@ -94,8 +94,12 @@ struct VaultListView: View {
     }
 }
 
-private struct VaultCardView: View {
+struct VaultCardView: View {
     let vault: Vault
+
+    static func shouldShowDefaultBadge(for vault: Vault) -> Bool {
+        false
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -115,13 +119,6 @@ private struct VaultCardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            if vault.isProtectedDefault {
-                Text("vault.non_deletable".localized)
-                    .font(.caption2)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.gray.opacity(0.15), in: Capsule())
-            }
         }
         .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
         .padding(12)

@@ -261,13 +261,57 @@ final class RenewalVaultTests: XCTestCase {
         let april = Item(title: "April", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 4, day: 20))!)
 
         let summary = DashboardCalculator.summary(items: [june, may, april], now: now, calendar: calendar)
-        XCTAssertEqual(summary.upcomingMonthGroups.count, 3)
-        XCTAssertEqual(summary.upcomingMonthGroups.first?.items.first?.title, "April")
+        XCTAssertEqual(summary.groupedRenewals.count, 3)
+        XCTAssertEqual(summary.groupedRenewals.first?.items.first?.title, "April")
     }
 
     func testDashboardAccessIsProOnly() {
         XCTAssertFalse(FeatureGate.canAccessDashboard(tier: .free))
         XCTAssertTrue(FeatureGate.canAccessDashboard(tier: .pro))
+    }
+
+
+
+    func testDashboardFilterPricedOnlyAndFreeOnly() {
+        let priced = Item(title: "P", category: "subscription", expiryDate: .now, priceAmount: 10, priceCurrency: "€")
+        let free = Item(title: "F", category: "subscription", expiryDate: .now)
+
+        let pricedOnly = DashboardCalculator.applyFilter(items: [priced, free], filter: DashboardFilter(priceFilter: .pricedOnly, paidOnly: false, dateFilter: .none))
+        let freeOnly = DashboardCalculator.applyFilter(items: [priced, free], filter: DashboardFilter(priceFilter: .freeOnly, paidOnly: false, dateFilter: .none))
+
+        XCTAssertEqual(pricedOnly.map(\.title), ["P"])
+        XCTAssertEqual(freeOnly.map(\.title), ["F"])
+    }
+
+    func testDashboardFilterPaidOnly() {
+        let paid = Item(title: "Paid", category: "subscription", expiryDate: .now, isCompleted: true)
+        let unpaid = Item(title: "Unpaid", category: "subscription", expiryDate: .now, isCompleted: false)
+
+        let filtered = DashboardCalculator.applyFilter(items: [paid, unpaid], filter: DashboardFilter(priceFilter: .all, paidOnly: true, dateFilter: .none))
+        XCTAssertEqual(filtered.map(\.title), ["Paid"])
+    }
+
+    func testDashboardFilterYearMonthAndMonthYear() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 10))!
+
+        let itemMay2026 = Item(title: "May 2026", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 5, day: 10))!)
+        let itemMay2027 = Item(title: "May 2027", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2027, month: 5, day: 10))!)
+        let itemJune2026 = Item(title: "June 2026", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 10))!)
+
+        let yearFiltered = DashboardCalculator.applyFilter(items: [itemMay2026, itemMay2027, itemJune2026], filter: DashboardFilter(priceFilter: .all, paidOnly: false, dateFilter: .year(2027)), now: now, calendar: calendar)
+        let monthFiltered = DashboardCalculator.applyFilter(items: [itemMay2026, itemMay2027, itemJune2026], filter: DashboardFilter(priceFilter: .all, paidOnly: false, dateFilter: .month(5)), now: now, calendar: calendar)
+        let monthYearFiltered = DashboardCalculator.applyFilter(items: [itemMay2026, itemMay2027, itemJune2026], filter: DashboardFilter(priceFilter: .all, paidOnly: false, dateFilter: .monthYear(month: 5, year: 2027)), now: now, calendar: calendar)
+
+        XCTAssertEqual(yearFiltered.map(\.title), ["May 2027"])
+        XCTAssertEqual(monthFiltered.map(\.title), ["May 2026"])
+        XCTAssertEqual(monthYearFiltered.map(\.title), ["May 2027"])
+    }
+
+    func testVaultCardDoesNotShowDefaultBadge() {
+        let personal = Vault(name: "Personal", isSystemDefault: true)
+        XCTAssertFalse(VaultCardView.shouldShowDefaultBadge(for: personal))
     }
 
     @MainActor
