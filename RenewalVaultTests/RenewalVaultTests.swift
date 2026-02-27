@@ -210,6 +210,66 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertEqual(ProUpgradeAction.vaultCreationActions, [.close, .goPro])
     }
 
+
+
+    func testDashboardYearlyTotalCalculationByCurrency() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 10))!
+
+        let itemA = Item(title: "A", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 8, day: 1))!, priceAmount: 10, priceCurrency: "€")
+        let itemB = Item(title: "B", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 9, day: 1))!, priceAmount: 15, priceCurrency: "€")
+        let itemC = Item(title: "C", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!, priceAmount: 20, priceCurrency: "$")
+        let noPrice = Item(title: "D", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 11, day: 1))!)
+
+        let summary = DashboardCalculator.summary(items: [itemA, itemB, itemC, noPrice], now: now, calendar: calendar)
+        XCTAssertEqual(summary.yearToPayTotals.count, 2)
+        XCTAssertEqual(summary.yearToPayTotals.first(where: { $0.currency == "€" })?.amount, 25)
+        XCTAssertEqual(summary.yearToPayTotals.first(where: { $0.currency == "$" })?.amount, 20)
+    }
+
+    func testDashboardUpcomingMonthToPayExcludesCompletedAndMatchesNextMonth() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 10))!
+
+        let nextMonthUnpaid = Item(title: "A", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 5, day: 2))!, priceAmount: 12, priceCurrency: "€")
+        let nextMonthCompleted = Item(title: "B", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 5, day: 15))!, priceAmount: 9, priceCurrency: "€", isCompleted: true)
+        let thisMonth = Item(title: "C", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 4, day: 20))!, priceAmount: 7, priceCurrency: "€")
+
+        let summary = DashboardCalculator.summary(items: [nextMonthUnpaid, nextMonthCompleted, thisMonth], now: now, calendar: calendar)
+        XCTAssertEqual(summary.nextMonthToPayTotals, [DashboardCurrencyTotal(currency: "€", amount: 12)])
+    }
+
+    func testDashboardPaidTotalUsesCompletedPricedItemsOnly() {
+        let paidOne = Item(title: "A", category: "subscription", expiryDate: .now, priceAmount: 5, priceCurrency: "€", isCompleted: true)
+        let paidTwo = Item(title: "B", category: "subscription", expiryDate: .now, priceAmount: 7, priceCurrency: "€", isCompleted: true)
+        let unpaid = Item(title: "C", category: "subscription", expiryDate: .now, priceAmount: 3, priceCurrency: "€", isCompleted: false)
+        let noPricePaid = Item(title: "D", category: "subscription", expiryDate: .now, isCompleted: true)
+
+        let summary = DashboardCalculator.summary(items: [paidOne, paidTwo, unpaid, noPricePaid])
+        XCTAssertEqual(summary.paidTotals, [DashboardCurrencyTotal(currency: "€", amount: 12)])
+    }
+
+    func testDashboardGroupsUpcomingRenewalsByMonth() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 10))!
+
+        let may = Item(title: "May", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 5, day: 1))!)
+        let june = Item(title: "June", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 6, day: 1))!)
+        let april = Item(title: "April", category: "subscription", expiryDate: calendar.date(from: DateComponents(year: 2026, month: 4, day: 20))!)
+
+        let summary = DashboardCalculator.summary(items: [june, may, april], now: now, calendar: calendar)
+        XCTAssertEqual(summary.upcomingMonthGroups.count, 3)
+        XCTAssertEqual(summary.upcomingMonthGroups.first?.items.first?.title, "April")
+    }
+
+    func testDashboardAccessIsProOnly() {
+        XCTAssertFalse(FeatureGate.canAccessDashboard(tier: .free))
+        XCTAssertTrue(FeatureGate.canAccessDashboard(tier: .pro))
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()

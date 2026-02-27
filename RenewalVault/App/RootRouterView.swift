@@ -29,6 +29,9 @@ struct MainTabView: View {
             NavigationStack { VaultListView() }
                 .tabItem { Label(LocalizedStringKey("tab.vaults"), systemImage: "archivebox") }
 
+            NavigationStack { DashboardView() }
+                .tabItem { Label(LocalizedStringKey("tab.dashboard"), systemImage: "chart.pie") }
+
             NavigationStack { SettingsView() }
                 .tabItem { Label(LocalizedStringKey("tab.settings"), systemImage: "gear") }
         }

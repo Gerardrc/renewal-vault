@@ -11,9 +11,11 @@ struct VaultListView: View {
     @State private var showPaywall = false
     @Query(sort: \Vault.createdAt) private var vaults: [Vault]
 
+    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(vaults) { vault in
                     NavigationLink(destination: VaultDetailView(vault: vault)) {
                         VaultCardView(vault: vault)
@@ -29,23 +31,11 @@ struct VaultListView: View {
                             }
                         }
                     }
-                    .swipeActions(edge: .trailing) {
-                        Button("common.edit".localized) {
-                            editingVault = vault
-                        }
-                        .tint(.blue)
-
-                        if !vault.isProtectedDefault {
-                            Button("item.delete".localized, role: .destructive) {
-                                delete(vault)
-                            }
-                        }
-                    }
                 }
             }
-            .padding(.horizontal)
-            .padding(.top, 12)
+            .padding(12)
         }
+        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("tab.vaults".localized)
         .toolbar {
             Button {
@@ -108,22 +98,22 @@ private struct VaultCardView: View {
     let vault: Vault
 
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             Image(systemName: vault.resolvedIconSystemName)
-                .font(.title3)
-                .frame(width: 36, height: 36)
-                .background(Color.accentColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
+                .font(.title2)
+                .frame(width: 42, height: 42)
+                .background(Color.accentColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(vault.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(String(format: "vault.items_count".localized, vault.items.count))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Spacer(minLength: 0)
 
-            Spacer()
+            Text(vault.name)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+
+            Text(String(format: "vault.items_count".localized, vault.items.count))
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             if vault.isProtectedDefault {
                 Text("vault.non_deletable".localized)
@@ -133,11 +123,11 @@ private struct VaultCardView: View {
                     .background(.gray.opacity(0.15), in: Capsule())
             }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 14))
+        .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+        .padding(12)
+        .background(.background, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16)
                 .stroke(.gray.opacity(0.2), lineWidth: 1)
         )
     }

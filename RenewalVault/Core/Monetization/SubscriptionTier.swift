@@ -21,6 +21,10 @@ struct FeatureGate {
     static func canExportPDF(tier: SubscriptionTier) -> Bool {
         tier == .pro
     }
+
+    static func canAccessDashboard(tier: SubscriptionTier) -> Bool {
+        tier == .pro
+    }
 }
 
 
