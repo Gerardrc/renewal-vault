@@ -168,6 +168,48 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertTrue(defaults.bool(forKey: AppState.initialPermissionsRequestedKey))
     }
 
+
+
+    func testCalendarEventTitleIncludesPriceWhenPresent() {
+        let itemWithPrice = Item(title: "Netflix", category: "subscription", expiryDate: .now, priceAmount: 12.99, priceCurrency: "€")
+        let itemNoPrice = Item(title: "Passport", category: "passport", expiryDate: .now)
+
+        XCTAssertEqual(CalendarEventService.titleText(for: itemWithPrice), "Netflix (€12.99)")
+        XCTAssertEqual(CalendarEventService.titleText(for: itemNoPrice), "Passport")
+    }
+
+    func testCalendarEventDefaultStartTimeIsEightAM() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let expiry = calendar.date(from: DateComponents(year: 2027, month: 3, day: 12, hour: 0, minute: 0))!
+
+        let start = CalendarEventService.defaultStartDate(for: expiry)
+        let components = Calendar.current.dateComponents([.hour, .minute], from: start)
+        XCTAssertEqual(components.hour, 8)
+        XCTAssertEqual(components.minute, 0)
+    }
+
+    func testVaultIconPersistenceField() {
+        let vault = Vault(name: "Travel", iconSystemName: VaultIcon.suitcase.systemName)
+        XCTAssertEqual(vault.iconSystemName, "suitcase")
+        XCTAssertEqual(vault.resolvedIconSystemName, "suitcase")
+    }
+
+    func testVaultDetailItemsFiltering() {
+        let vaultA = Vault(name: "A")
+        let vaultB = Vault(name: "B")
+        let itemA = Item(title: "A1", category: "other", expiryDate: .now, vault: vaultA)
+        let itemB = Item(title: "B1", category: "other", expiryDate: .now, vault: vaultB)
+
+        let filtered = VaultDetailView.items(for: vaultA.id, in: [itemA, itemB])
+        XCTAssertEqual(filtered.count, 1)
+        XCTAssertEqual(filtered.first?.title, "A1")
+    }
+
+    func testProGatedVaultAlertActionsAreCloseAndGoPro() {
+        XCTAssertEqual(ProUpgradeAction.vaultCreationActions, [.close, .goPro])
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()

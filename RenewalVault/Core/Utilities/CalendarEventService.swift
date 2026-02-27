@@ -41,27 +41,60 @@ final class CalendarEventService {
         EKEventStore.authorizationStatus(for: .event)
     }
 
+    func eventStore() -> EKEventStore {
+        store
+    }
+    
     @MainActor
-    func addExpiryEvent(for item: Item) async throws {
+    func prepareEditorEvent(for item: Item) -> EKEvent {
+        let event = EKEvent(eventStore: store)
+        event.title = Self.titleText(for: item)
+        event.notes = Self.notesText(for: item)
+
+        let start = Self.defaultStartDate(for: item.expiryDate)
+        event.startDate = start
+        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
+        event.calendar = store.defaultCalendarForNewEvents
+        return event
+    }
+
+    @MainActor
+    func prepareExpiryEvent(for item: Item) async throws -> EKEvent {
         let granted = try await requestCalendarAccessIfNeeded()
         guard granted else { throw CalendarEventError.accessDenied }
 
         let event = EKEvent(eventStore: store)
-        event.title = item.title
-        event.notes = [
+        event.title = Self.titleText(for: item)
+        event.notes = Self.notesText(for: item)
+
+        let start = Self.defaultStartDate(for: item.expiryDate)
+        event.startDate = start
+        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
+        event.calendar = store.defaultCalendarForNewEvents
+        return event
+    }
+
+    static func titleText(for item: Item) -> String {
+        if let price = item.formattedPriceText {
+            return "\(item.title) (\(price))"
+        }
+        return item.title
+    }
+
+    static func defaultStartDate(for expiryDate: Date) -> Date {
+        let base = Calendar.current.startOfDay(for: expiryDate)
+        return Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: base) ?? base
+    }
+
+    static func notesText(for item: Item) -> String {
+        [
+            item.vault.map { "\("item.vault".localized): \($0.name)" } ?? "",
             "\("item.category".localized): \("category.\(item.category)".localized)",
             item.issuer.map { "\("item.issuer".localized): \($0)" } ?? "",
             item.notes.isEmpty ? "" : item.notes
         ]
         .filter { !$0.isEmpty }
         .joined(separator: "\n")
-
-        let start = Calendar.current.startOfDay(for: item.expiryDate)
-        event.startDate = start
-        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
-        event.calendar = store.defaultCalendarForNewEvents
-
-        try store.save(event, span: .thisEvent, commit: true)
     }
 }
 

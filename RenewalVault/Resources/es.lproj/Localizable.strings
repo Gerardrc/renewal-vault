@@ -121,3 +121,12 @@
 "item.price" = "Precio";
 "item.price_amount" = "Importe";
 "item.price_currency" = "Moneda";
+
+"common.go_pro" = "Hazte Pro";
+"vault.pro_required_title" = "Función Pro";
+"vault.items_count" = "%d elemento(s)";
+"vault.create" = "Crear bóveda";
+"vault.edit" = "Editar bóveda";
+"vault.create_action" = "Crear";
+"vault.icon" = "Icono de la bóveda";
+"vault.empty_items" = "Todavía no hay elementos en esta bóveda.";

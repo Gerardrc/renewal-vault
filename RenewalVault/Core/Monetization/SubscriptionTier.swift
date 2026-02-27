@@ -22,3 +22,13 @@ struct FeatureGate {
         tier == .pro
     }
 }
+
+
+enum ProUpgradeAction: String, CaseIterable {
+    case close
+    case goPro
+
+    static var vaultCreationActions: [ProUpgradeAction] {
+        [.close, .goPro]
+    }
+}

@@ -121,3 +121,12 @@
 "item.price" = "Price";
 "item.price_amount" = "Amount";
 "item.price_currency" = "Currency";
+
+"common.go_pro" = "Go Pro";
+"vault.pro_required_title" = "Pro Feature";
+"vault.items_count" = "%d item(s)";
+"vault.create" = "Create Vault";
+"vault.edit" = "Edit Vault";
+"vault.create_action" = "Create";
+"vault.icon" = "Vault icon";
+"vault.empty_items" = "No items in this vault yet.";

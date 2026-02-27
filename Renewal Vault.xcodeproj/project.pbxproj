@@ -87,6 +87,7 @@
 		D53C23942F4CD7DA0001BCCA /* OnboardingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		D53C23962F4CD7DA0001BCCA /* RenewalVaultTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RenewalVaultTests.swift; sourceTree = "<group>"; };
 		D53C23982F4CD7DA0001BCCA /* RenewalVault.storekit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RenewalVault.storekit; sourceTree = "<group>"; };
+		D548BFED2F519D5200D9C029 /* Renewal-Vault-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Renewal-Vault-Info.plist"; sourceTree = SOURCE_ROOT; };
 		D56E8A7E2F506AE400D117FF /* CalendarEventService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalendarEventService.swift; sourceTree = "<group>"; };
 		D56F08E32F5055AC001B7216 /* ReminderDayOptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReminderDayOptions.swift; sourceTree = "<group>"; };
 		D59064732F4B0A180088A6A3 /* Renewal Vault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Renewal Vault.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -382,6 +383,7 @@
 		D59064752F4B0A180088A6A3 /* Renewal Vault */ = {
 			isa = PBXGroup;
 			children = (
+				D548BFED2F519D5200D9C029 /* Renewal-Vault-Info.plist */,
 				D59064762F4B0A180088A6A3 /* Renewal_VaultApp.swift */,
 				D59064782F4B0A180088A6A3 /* ContentView.swift */,
 				D590647A2F4B0A1A0088A6A3 /* Assets.xcassets */,
@@ -749,6 +751,7 @@
 				DEVELOPMENT_TEAM = BQNVQAKU5V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Renewal-Vault-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -778,6 +781,7 @@
 				DEVELOPMENT_TEAM = BQNVQAKU5V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Renewal-Vault-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

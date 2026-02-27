@@ -31,11 +31,14 @@ final class AppState: ObservableObject {
             let descriptor = FetchDescriptor<Vault>()
             let vaults = try modelContext.fetch(descriptor)
             if vaults.isEmpty {
-                modelContext.insert(Vault(name: "Personal", isSystemDefault: true))
+                modelContext.insert(Vault(name: "Personal", iconSystemName: "person.crop.circle", isSystemDefault: true))
                 try modelContext.save()
             } else if !vaults.contains(where: { $0.isProtectedDefault }) {
                 if let personal = vaults.first(where: { $0.name.caseInsensitiveCompare("Personal") == .orderedSame }) ?? vaults.first {
                     personal.isSystemDefault = true
+                    if personal.iconSystemName.isEmpty {
+                        personal.iconSystemName = "person.crop.circle"
+                    }
                     try modelContext.save()
                 }
             }
