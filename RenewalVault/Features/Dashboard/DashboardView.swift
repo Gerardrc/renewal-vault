@@ -5,9 +5,15 @@ struct DashboardView: View {
     @EnvironmentObject private var entitlement: EntitlementService
     @Query(sort: \Item.expiryDate) private var items: [Item]
     @State private var showPaywall = false
+    @State private var showFilterSheet = false
+    @State private var dashboardFilter = DashboardFilter.default
 
     private var summary: DashboardSummary {
-        DashboardCalculator.summary(items: items)
+        DashboardCalculator.summary(items: items, filter: dashboardFilter)
+    }
+
+    private var filteredItems: [Item] {
+        DashboardCalculator.applyFilter(items: items, filter: dashboardFilter)
     }
 
     var body: some View {
@@ -19,18 +25,33 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("tab.dashboard".localized)
+        .toolbar {
+            if FeatureGate.canAccessDashboard(tier: entitlement.isPro ? .pro : .free) {
+                Button {
+                    showFilterSheet = true
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                }
+            }
+        }
         .sheet(isPresented: $showPaywall) {
             NavigationStack { PaywallView() }
+        }
+        .sheet(isPresented: $showFilterSheet) {
+            NavigationStack {
+                DashboardFilterSheet(filter: $dashboardFilter)
+            }
         }
     }
 
     private var proDashboardContent: some View {
         ScrollView {
             VStack(spacing: 16) {
-                VStack(spacing: 10) {
-                    DashboardSummaryCard(title: "dashboard.summary.year".localized, totals: summary.yearToPayTotals)
-                    DashboardSummaryCard(title: "dashboard.summary.next_month".localized, totals: summary.nextMonthToPayTotals)
-                    DashboardSummaryCard(title: "dashboard.summary.paid".localized, totals: summary.paidTotals)
+                DashboardSummaryCard(title: "dashboard.summary.year".localized, totals: summary.yearToPayTotals)
+
+                HStack(alignment: .top, spacing: 10) {
+                    DashboardSummaryCard(title: "dashboard.summary.paid".localized, totals: summary.paidTotals, compact: true)
+                    DashboardSummaryCard(title: "dashboard.summary.next_month".localized, totals: summary.nextMonthToPayTotals, compact: true)
                 }
 
                 if hasMultiCurrency {
@@ -40,13 +61,13 @@ struct DashboardView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                if summary.upcomingMonthGroups.isEmpty {
+                if summary.groupedRenewals.isEmpty {
                     Text("dashboard.empty".localized)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    ForEach(summary.upcomingMonthGroups) { group in
+                    ForEach(summary.groupedRenewals) { group in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(group.monthStart.formatted(.dateTime.month(.wide).year()))
                                 .font(.headline)
@@ -82,6 +103,7 @@ struct DashboardView: View {
     }
 }
 
+
 private struct DashboardLockedView: View {
     @Binding var showPaywall: Bool
 
@@ -109,9 +131,11 @@ private struct DashboardLockedView: View {
     }
 }
 
+
 private struct DashboardSummaryCard: View {
     let title: String
     let totals: [DashboardCurrencyTotal]
+    var compact: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -128,8 +152,9 @@ private struct DashboardSummaryCard: View {
                         .font(.headline)
                 }
             }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: compact ? 108 : 124, alignment: .leading)
         .padding(12)
         .background(.background, in: RoundedRectangle(cornerRadius: 14))
         .overlay(
@@ -177,5 +202,130 @@ private struct DashboardItemCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(.gray.opacity(0.15), lineWidth: 1)
         )
+    }
+}
+
+private enum DashboardDateFilterMode: String, CaseIterable, Identifiable {
+    case none
+    case year
+    case month
+    case monthYear
+
+    var id: String { rawValue }
+}
+
+private struct DashboardFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var filter: DashboardFilter
+
+    @State private var draftPriceFilter: DashboardPriceFilter = .all
+    @State private var draftPaidOnly = false
+    @State private var dateMode: DashboardDateFilterMode = .none
+    @State private var selectedYear = Calendar.current.component(.year, from: .now)
+    @State private var selectedMonth = Calendar.current.component(.month, from: .now)
+
+    private let years = Array((Calendar.current.component(.year, from: .now) - 5)...(Calendar.current.component(.year, from: .now) + 5))
+    private let months = Array(1...12)
+
+    var body: some View {
+        Form {
+            Section("dashboard.filter.price".localized) {
+                Picker("dashboard.filter.price".localized, selection: $draftPriceFilter) {
+                    Text("dashboard.filter.price.all".localized).tag(DashboardPriceFilter.all)
+                    Text("dashboard.filter.price.priced".localized).tag(DashboardPriceFilter.pricedOnly)
+                    Text("dashboard.filter.price.free".localized).tag(DashboardPriceFilter.freeOnly)
+                }
+            }
+
+            Section("dashboard.filter.paid".localized) {
+                Toggle("dashboard.filter.paid_only".localized, isOn: $draftPaidOnly)
+            }
+
+            Section("dashboard.filter.date".localized) {
+                Picker("dashboard.filter.date_mode".localized, selection: $dateMode) {
+                    Text("dashboard.filter.date.none".localized).tag(DashboardDateFilterMode.none)
+                    Text("dashboard.filter.date.year".localized).tag(DashboardDateFilterMode.year)
+                    Text("dashboard.filter.date.month".localized).tag(DashboardDateFilterMode.month)
+                    Text("dashboard.filter.date.month_year".localized).tag(DashboardDateFilterMode.monthYear)
+                }
+
+                if dateMode == .year || dateMode == .monthYear {
+                    Picker("dashboard.filter.year".localized, selection: $selectedYear) {
+                        ForEach(years, id: \.self) { year in
+                            Text("\(year)").tag(year)
+                        }
+                    }
+                }
+
+                if dateMode == .month || dateMode == .monthYear {
+                    Picker("dashboard.filter.month".localized, selection: $selectedMonth) {
+                        ForEach(months, id: \.self) { month in
+                            Text(monthName(month)).tag(month)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("dashboard.filter.title".localized)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("common.close".localized) { dismiss() }
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                Button("dashboard.filter.reset".localized) {
+                    draftPriceFilter = .all
+                    draftPaidOnly = false
+                    dateMode = .none
+                    selectedYear = Calendar.current.component(.year, from: .now)
+                    selectedMonth = Calendar.current.component(.month, from: .now)
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("dashboard.filter.apply".localized) {
+                    filter = buildFilter()
+                    dismiss()
+                }
+            }
+        }
+        .onAppear {
+            draftPriceFilter = filter.priceFilter
+            draftPaidOnly = filter.paidOnly
+            switch filter.dateFilter {
+            case .none:
+                dateMode = .none
+            case .year(let year):
+                dateMode = .year
+                selectedYear = year
+            case .month(let month):
+                dateMode = .month
+                selectedMonth = month
+            case .monthYear(let month, let year):
+                dateMode = .monthYear
+                selectedMonth = month
+                selectedYear = year
+            }
+        }
+    }
+
+    private func buildFilter() -> DashboardFilter {
+        let dateFilter: DashboardDateFilter
+        switch dateMode {
+        case .none:
+            dateFilter = .none
+        case .year:
+            dateFilter = .year(selectedYear)
+        case .month:
+            dateFilter = .month(selectedMonth)
+        case .monthYear:
+            dateFilter = .monthYear(month: selectedMonth, year: selectedYear)
+        }
+
+        return DashboardFilter(priceFilter: draftPriceFilter, paidOnly: draftPaidOnly, dateFilter: dateFilter)
+    }
+
+    private func monthName(_ month: Int) -> String {
+        let dateFormatter = DateFormatter()
+        let name = dateFormatter.monthSymbols[max(0, min(11, month - 1))]
+        return name.capitalized
     }
 }

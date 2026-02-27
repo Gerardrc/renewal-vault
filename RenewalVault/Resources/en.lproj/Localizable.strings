@@ -140,3 +140,21 @@
 "dashboard.total.none" = "No priced renewals";
 "dashboard.empty" = "No upcoming renewals.";
 "dashboard.multi_currency_notice" = "Totals are shown separately per currency.";
+
+"dashboard.filter.title" = "Filters";
+"dashboard.filter.apply" = "Apply";
+"dashboard.filter.reset" = "Reset";
+"dashboard.filter.price" = "Renewal type";
+"dashboard.filter.price.all" = "All renewals";
+"dashboard.filter.price.priced" = "Priced-only renewals";
+"dashboard.filter.price.free" = "Free-only renewals";
+"dashboard.filter.paid" = "Paid state";
+"dashboard.filter.paid_only" = "Already paid renewals";
+"dashboard.filter.date" = "Date";
+"dashboard.filter.date_mode" = "Date mode";
+"dashboard.filter.date.none" = "No date filter";
+"dashboard.filter.date.year" = "Year only";
+"dashboard.filter.date.month" = "Month only";
+"dashboard.filter.date.month_year" = "Month and year";
+"dashboard.filter.year" = "Year";
+"dashboard.filter.month" = "Month";

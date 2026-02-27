@@ -140,3 +140,21 @@
 "dashboard.total.none" = "No hay renovaciones con precio";
 "dashboard.empty" = "No hay renovaciones próximas.";
 "dashboard.multi_currency_notice" = "Los totales se muestran por separado por moneda.";
+
+"dashboard.filter.title" = "Filtros";
+"dashboard.filter.apply" = "Aplicar";
+"dashboard.filter.reset" = "Restablecer";
+"dashboard.filter.price" = "Tipo de renovación";
+"dashboard.filter.price.all" = "Todas las renovaciones";
+"dashboard.filter.price.priced" = "Solo renovaciones con precio";
+"dashboard.filter.price.free" = "Solo renovaciones gratuitas";
+"dashboard.filter.paid" = "Estado de pago";
+"dashboard.filter.paid_only" = "Renovaciones ya pagadas";
+"dashboard.filter.date" = "Fecha";
+"dashboard.filter.date_mode" = "Modo de fecha";
+"dashboard.filter.date.none" = "Sin filtro de fecha";
+"dashboard.filter.date.year" = "Solo año";
+"dashboard.filter.date.month" = "Solo mes";
+"dashboard.filter.date.month_year" = "Mes y año";
+"dashboard.filter.year" = "Año";
+"dashboard.filter.month" = "Mes";
