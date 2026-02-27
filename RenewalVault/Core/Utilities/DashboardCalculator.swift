@@ -11,6 +11,18 @@ struct DashboardCurrencyTotal: Equatable, Identifiable {
     }
 }
 
+struct DashboardVaultCurrencyTotal: Equatable, Identifiable {
+    let vaultName: String
+    let currency: String
+    let amount: Double
+
+    var id: String { "\(vaultName)-\(currency)" }
+
+    var formattedText: String {
+        PriceFormatter.text(amount: amount, currency: currency) ?? "-"
+    }
+}
+
 struct DashboardMonthGroup: Identifiable {
     let monthStart: Date
     let items: [Item]
@@ -20,6 +32,7 @@ struct DashboardMonthGroup: Identifiable {
 
 struct DashboardSummary {
     let yearToPayTotals: [DashboardCurrencyTotal]
+    let yearVaultTotals: [DashboardVaultCurrencyTotal]
     let nextMonthToPayTotals: [DashboardCurrencyTotal]
     let paidTotals: [DashboardCurrencyTotal]
     let groupedRenewals: [DashboardMonthGroup]
@@ -78,9 +91,8 @@ enum DashboardCalculator {
         let targetNextMonth = filter.dateFilter.monthValue ?? defaultNextMonth
         let targetNextMonthYear = filter.dateFilter.yearValue ?? defaultNextMonthYear
 
-        let yearToPay = filteredItems.filter {
-            !$0.isCompleted
-            && $0.priceAmount != nil
+        let yearTotalItems = filteredItems.filter {
+            $0.priceAmount != nil
             && calendar.component(.year, from: $0.expiryDate) == targetYear
         }
 
@@ -108,7 +120,8 @@ enum DashboardCalculator {
         }
 
         return DashboardSummary(
-            yearToPayTotals: totalsByCurrency(for: yearToPay),
+            yearToPayTotals: totalsByCurrency(for: yearTotalItems),
+            yearVaultTotals: yearlyVaultTotals(for: yearTotalItems),
             nextMonthToPayTotals: totalsByCurrency(for: nextMonthToPay),
             paidTotals: totalsByCurrency(for: paid),
             groupedRenewals: monthGroups
@@ -157,6 +170,23 @@ enum DashboardCalculator {
 
         return totals.keys.sorted().map { currency in
             DashboardCurrencyTotal(currency: currency, amount: totals[currency] ?? 0)
+        }
+    }
+
+    static func yearlyVaultTotals(for items: [Item]) -> [DashboardVaultCurrencyTotal] {
+        var totals: [String: Double] = [:]
+        for item in items {
+            guard let amount = item.priceAmount, amount >= 0 else { continue }
+            let currency = (item.priceCurrency?.isEmpty == false ? item.priceCurrency : CurrencySymbol.euro.rawValue) ?? CurrencySymbol.euro.rawValue
+            let vaultName = item.vault?.name ?? "-"
+            let key = "\(vaultName)|\(currency)"
+            totals[key, default: 0] += amount
+        }
+
+        return totals.keys.sorted().compactMap { key in
+            let parts = key.split(separator: "|", maxSplits: 1).map(String.init)
+            guard parts.count == 2 else { return nil }
+            return DashboardVaultCurrencyTotal(vaultName: parts[0], currency: parts[1], amount: totals[key] ?? 0)
         }
     }
 }
