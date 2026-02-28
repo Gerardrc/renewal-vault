@@ -162,3 +162,5 @@
 "home.completed" = "Completados";
 
 "dashboard.chart_hidden_multi_currency" = "El gráfico por bóveda solo se muestra con totales anuales de una sola moneda.";
+
+"onboard.dashboard" = "Planifica gastos con los datos de tu Panel.";

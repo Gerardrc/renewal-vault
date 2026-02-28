@@ -16,6 +16,20 @@ final class AppState: ObservableObject {
     @Published var hasCompletedOnboarding: Bool = false
     @Published var transientMessage: TransientMessage?
 
+    init() {
+        let defaults = UserDefaults.standard
+        let initial = Self.initialLaunchState(defaults: defaults)
+        hasChosenLanguage = initial.hasChosenLanguage
+        hasCompletedOnboarding = initial.hasCompletedOnboarding
+    }
+
+    static func initialLaunchState(defaults: UserDefaults) -> (hasChosenLanguage: Bool, hasCompletedOnboarding: Bool) {
+        let hasPersistedLanguage = defaults.string(forKey: LanguageManager.languageCodeKey) != nil
+        let hasChosen = defaults.bool(forKey: Self.languageChosenKey) || hasPersistedLanguage
+        let hasOnboarded = defaults.bool(forKey: Self.onboardingKey)
+        return (hasChosenLanguage: hasChosen, hasCompletedOnboarding: hasOnboarded)
+    }
+
     func bootstrapIfNeeded(modelContext: ModelContext) async {
         let defaults = UserDefaults.standard
         let hasPersistedLanguage = defaults.string(forKey: LanguageManager.languageCodeKey) != nil

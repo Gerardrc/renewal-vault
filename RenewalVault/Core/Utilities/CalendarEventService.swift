@@ -36,6 +36,19 @@ final class CalendarEventService {
             }
         }
     }
+    
+    @MainActor
+    func prepareEditorEvent(for item: Item) -> EKEvent {
+        let event = EKEvent(eventStore: store)
+        event.title = Self.titleText(for: item)
+        event.notes = Self.notesText(for: item)
+
+        let start = Self.defaultStartDate(for: item.expiryDate)
+        event.startDate = start
+        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
+        event.calendar = store.defaultCalendarForNewEvents
+        return event
+    }
 
     static func authorizationStatus() -> EKAuthorizationStatus {
         EKEventStore.authorizationStatus(for: .event)
@@ -61,19 +74,6 @@ final class CalendarEventService {
         return event
     }
     
-    @MainActor
-    func prepareEditorEvent(for item: Item) -> EKEvent {
-        let event = EKEvent(eventStore: store)
-        event.title = Self.titleText(for: item)
-        event.notes = Self.notesText(for: item)
-
-        let start = Self.defaultStartDate(for: item.expiryDate)
-        event.startDate = start
-        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
-        event.calendar = store.defaultCalendarForNewEvents
-        return event
-    }
-
 
     static func titleText(for item: Item) -> String {
         if let price = item.formattedPriceText {

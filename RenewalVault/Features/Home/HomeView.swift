@@ -11,22 +11,24 @@ struct HomeView: View {
     @State private var query = ""
     @State private var selectedVaultID: UUID?
     @State private var categoryFilter = ""
-    @State private var upcomingOnly = false
     @State private var showCompleted = false
     @State private var calendarAlertMessage = ""
     @State private var showCalendarAlert = false
     @State private var showCalendarDeniedAlert = false
-    @State private var editingCalendarEvent: EKEvent?
-    @State private var showCalendarEditor = false
+    @State private var calendarDraft: CalendarDraft?
+    private struct CalendarDraft: Identifiable {
+        let id = UUID()
+        let eventStore: EKEventStore
+        let event: EKEvent
+    }
 
     private var filtered: [Item] {
         items.filter { item in
             let qOK = query.isEmpty || item.title.localizedCaseInsensitiveContains(query) || (item.issuer?.localizedCaseInsensitiveContains(query) ?? false)
             let vOK = selectedVaultID == nil || item.vault?.id == selectedVaultID
             let cOK = categoryFilter.isEmpty || item.category == categoryFilter
-            let upOK = !upcomingOnly || item.expiryDate >= Calendar.current.startOfDay(for: .now)
             let completionOK = showCompleted || !item.isCompleted
-            return qOK && vOK && cOK && upOK && completionOK
+            return qOK && vOK && cOK && completionOK
         }
     }
 
@@ -59,7 +61,6 @@ struct HomeView: View {
                         Text("category.\(c.rawValue)".localized).tag(c.rawValue)
                     }
                 }
-                Toggle("home.upcoming_only".localized, isOn: $upcomingOnly)
                 Toggle("home.show_completed".localized, isOn: $showCompleted)
             }
 
@@ -95,12 +96,11 @@ struct HomeView: View {
         } message: {
             Text("calendar.access_denied".localized)
         }
-        .sheet(isPresented: $showCalendarEditor, onDismiss: {
-            editingCalendarEvent = nil
-        }) {
-            if let event = editingCalendarEvent {
-                CalendarEventEditorSheet(eventStore: CalendarEventService.shared.eventStore(), event: event)
-            }
+        .sheet(item: $calendarDraft) { draft in
+            CalendarEventEditorSheet(
+                eventStore: draft.eventStore,
+                event: draft.event
+            )
         }
     }
 
@@ -137,7 +137,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private func bucketSection(title: String, bucket: ItemBucket) -> some View {
-        let sectionItems = activeItems.filter { ReminderScheduler.bucket(for: $0) == bucket }
+        let sectionItems = filtered.filter { ReminderScheduler.bucket(for: $0) == bucket }
         if !sectionItems.isEmpty {
             Section(title) {
                 ForEach(sectionItems.indices, id: \.self) { index in
@@ -172,6 +172,8 @@ struct HomeView: View {
         }
     }
 
+    static var includesUpcomingToggleInFilters: Bool { false }
+
     static func displaySections(from items: [Item], showCompleted: Bool) -> (completed: [Item], active: [Item]) {
         let active = items.filter { !$0.isCompleted }
         let completed = showCompleted ? items.filter { $0.isCompleted } : []
@@ -184,18 +186,9 @@ struct HomeView: View {
 
     @MainActor
     private func addToCalendar(item: Item) async {
-        do {
-            let event = try await CalendarEventService.shared.prepareExpiryEvent(for: item)
-            editingCalendarEvent = event
-            showCalendarEditor = true
-        } catch {
-            if case CalendarEventError.accessDenied = error {
-                showCalendarDeniedAlert = true
-            } else {
-                calendarAlertMessage = "calendar.add_failed".localized
-                showCalendarAlert = true
-            }
-        }
+        let store = CalendarEventService.shared.eventStore()
+        let event = CalendarEventService.shared.prepareEditorEvent(for: item)
+        calendarDraft = CalendarDraft(eventStore: store, event: event)
     }
 
     private func openSettings() {

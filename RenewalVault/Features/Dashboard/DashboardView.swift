@@ -115,7 +115,6 @@ struct DashboardView: View {
     }
 }
 
-
 private struct DashboardLockedView: View {
     @Binding var showPaywall: Bool
 
