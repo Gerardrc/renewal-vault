@@ -162,3 +162,5 @@
 "home.completed" = "Completed";
 
 "dashboard.chart_hidden_multi_currency" = "Vault chart is shown only for single-currency yearly totals.";
+
+"onboard.dashboard" = "Plan spending with your Dashboard insights.";

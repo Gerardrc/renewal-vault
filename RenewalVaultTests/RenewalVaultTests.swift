@@ -355,6 +355,34 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertEqual(sections.active.map(\.title), ["Open"])
     }
 
+
+
+    @MainActor
+    func testInitialLaunchStateUsesPersistedLanguageWithoutFlash() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: AppState.languageChosenKey)
+        defaults.set("es", forKey: LanguageManager.languageCodeKey)
+        defaults.set(true, forKey: AppState.onboardingKey)
+
+        let initial = AppState.initialLaunchState(defaults: defaults)
+        XCTAssertTrue(initial.hasChosenLanguage)
+        XCTAssertTrue(initial.hasCompletedOnboarding)
+    }
+
+    func testOnboardingIncludesDashboardPage() {
+        let pageKeys = OnboardingView.pageContent.map(\.title)
+        XCTAssertTrue(pageKeys.contains("onboard.dashboard"))
+        XCTAssertEqual(pageKeys.count, 5)
+    }
+
+    func testHomeNoLongerIncludesUpcomingToggle() {
+        XCTAssertFalse(HomeView.includesUpcomingToggleInFilters)
+    }
+
+    func testOnboardingNoPermissionPrimerAlert() {
+        XCTAssertFalse(OnboardingView.usesPermissionPrimerAlert)
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()

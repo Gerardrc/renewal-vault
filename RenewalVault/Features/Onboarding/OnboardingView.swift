@@ -3,15 +3,18 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject private var appState: AppState
     @State private var page = 0
-    @State private var showPermissionPrimer = false
 
-    private let pages: [(title: String, icon: String)] = [
+    static var usesPermissionPrimerAlert: Bool { false }
+
+    static let pageContent: [(title: String, icon: String)] = [
         ("onboard.track", "calendar.badge.clock"),
         ("onboard.smart", "bell.badge"),
         ("onboard.attach", "paperclip"),
+        ("onboard.dashboard", "chart.pie"),
         ("onboard.export", "doc.richtext")
     ]
 
+    private let pages = Self.pageContent
     private var isLastPage: Bool { page == pages.count - 1 }
 
     var body: some View {
@@ -55,18 +58,9 @@ struct OnboardingView: View {
             }
             .padding()
         }
-        .alert("permissions.title".localized, isPresented: $showPermissionPrimer) {
-            Button("common.continue".localized) { appState.finishOnboarding() }
-        } message: {
-            Text("permissions.body".localized)
-        }
     }
 
     private func completeFlow() {
-        if appState.shouldRequestInitialPermissions() {
-            showPermissionPrimer = true
-        } else {
-            appState.finishOnboarding()
-        }
+        appState.finishOnboarding()
     }
 }
