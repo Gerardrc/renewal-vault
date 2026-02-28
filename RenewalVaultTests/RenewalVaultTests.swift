@@ -383,6 +383,22 @@ final class RenewalVaultTests: XCTestCase {
         XCTAssertFalse(OnboardingView.usesPermissionPrimerAlert)
     }
 
+
+
+    func testCalendarAccessStatusMappingBlocksDenied() {
+        XCTAssertTrue(CalendarEventService.hasCalendarAccess(status: .fullAccess))
+        XCTAssertTrue(CalendarEventService.hasCalendarAccess(status: .writeOnly))
+        XCTAssertFalse(CalendarEventService.hasCalendarAccess(status: .denied))
+        XCTAssertFalse(CalendarEventService.hasCalendarAccess(status: .restricted))
+        XCTAssertFalse(CalendarEventService.hasCalendarAccess(status: .notDetermined))
+    }
+
+    func testVaultExportActionVisibleAndProGated() {
+        XCTAssertTrue(VaultDetailView.hasExportAction)
+        XCTAssertFalse(VaultDetailView.canExportPDF(isPro: false))
+        XCTAssertTrue(VaultDetailView.canExportPDF(isPro: true))
+    }
+
     @MainActor
     func testLanguagePersistence() {
         let manager = LanguageManager()
