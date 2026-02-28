@@ -36,7 +36,7 @@ struct SettingsView: View {
             Section("settings.privacy".localized) {
                 NavigationLink("settings.privacy".localized) { PrivacyView() }
             }
-
+/*
             #if DEBUG
             Section("settings.developer".localized) {
                 Toggle("settings.simulate_pro".localized, isOn: $entitlement.debugForcePro)
@@ -47,7 +47,9 @@ struct SettingsView: View {
             }
             #endif
         }
+ */
         .navigationTitle("tab.settings".localized)
         .sheet(isPresented: $showPaywall) { PaywallView() }
     }
+}
 }

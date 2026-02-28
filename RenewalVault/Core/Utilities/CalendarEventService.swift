@@ -36,6 +36,43 @@ final class CalendarEventService {
             }
         }
     }
+
+    static func authorizationStatus() -> EKAuthorizationStatus {
+        EKEventStore.authorizationStatus(for: .event)
+    }
+
+    static func hasCalendarAccess(status: EKAuthorizationStatus) -> Bool {
+        switch status {
+        case .fullAccess, .writeOnly, .authorized:
+            return true
+        default:
+            return false
+        }
+    }
+
+    func eventStore() -> EKEventStore {
+        store
+    }
+
+    func hasCurrentCalendarAccess() -> Bool {
+        Self.hasCalendarAccess(status: Self.authorizationStatus()) && store.defaultCalendarForNewEvents != nil
+    }
+
+    @MainActor
+    func prepareExpiryEvent(for item: Item) async throws -> EKEvent {
+        let granted = try await requestCalendarAccessIfNeeded()
+        guard granted && hasCurrentCalendarAccess() else { throw CalendarEventError.accessDenied }
+
+        let event = EKEvent(eventStore: store)
+        event.title = Self.titleText(for: item)
+        event.notes = Self.notesText(for: item)
+
+        let start = Self.defaultStartDate(for: item.expiryDate)
+        event.startDate = start
+        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
+        event.calendar = store.defaultCalendarForNewEvents
+        return event
+    }
     
     @MainActor
     func prepareEditorEvent(for item: Item) -> EKEvent {
@@ -49,31 +86,6 @@ final class CalendarEventService {
         event.calendar = store.defaultCalendarForNewEvents
         return event
     }
-
-    static func authorizationStatus() -> EKAuthorizationStatus {
-        EKEventStore.authorizationStatus(for: .event)
-    }
-
-    func eventStore() -> EKEventStore {
-        store
-    }
-
-    @MainActor
-    func prepareExpiryEvent(for item: Item) async throws -> EKEvent {
-        let granted = try await requestCalendarAccessIfNeeded()
-        guard granted else { throw CalendarEventError.accessDenied }
-
-        let event = EKEvent(eventStore: store)
-        event.title = Self.titleText(for: item)
-        event.notes = Self.notesText(for: item)
-
-        let start = Self.defaultStartDate(for: item.expiryDate)
-        event.startDate = start
-        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: start)
-        event.calendar = store.defaultCalendarForNewEvents
-        return event
-    }
-    
 
     static func titleText(for item: Item) -> String {
         if let price = item.formattedPriceText {

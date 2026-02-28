@@ -82,8 +82,34 @@
 "settings.simulate_pro" = "Simular Pro";
 "settings.reset_onboarding" = "Reiniciar onboarding";
 
-"privacy.body" = "Renewal Vault guarda tus datos localmente en el dispositivo. No rastreamos tu actividad por defecto.";
+"privacy.title" = "Política de Privacidad";
 
+"privacy.section.data.title" = "Datos almacenados en tu dispositivo";
+"privacy.section.data.body" = "Renewal Vault almacena tus bóvedas, elementos, fechas de renovación, notas, referencias de adjuntos, ajustes de recordatorios, estado del onboarding y preferencias de idioma localmente en tu dispositivo. Actualmente no te pedimos crear una cuenta y no operamos nuestro propio servidor para almacenar tus datos personales de renovaciones.";
+
+"privacy.section.attachments.title" = "Adjuntos";
+"privacy.section.attachments.body" = "Si decides añadir fotos, PDF o archivos a un elemento, esos adjuntos se almacenan localmente en tu dispositivo como parte de los datos de la app. Se utilizan únicamente para que puedas ver y gestionar tus propios documentos dentro de la app.";
+
+"privacy.section.notifications.title" = "Notificaciones";
+"privacy.section.notifications.body" = "Si concedes permiso para notificaciones, Renewal Vault programa notificaciones locales en tu dispositivo para recordarte próximas renovaciones. Estas notificaciones se generan localmente en la app y no se envían a través de nuestros propios servidores.";
+
+"privacy.section.calendar.title" = "Acceso al calendario";
+"privacy.section.calendar.body" = "Si concedes permiso para el calendario, Renewal Vault puede ayudarte a crear eventos de calendario relacionados con tus renovaciones. El acceso al calendario se utiliza únicamente para esta función y solo con tu permiso. Puedes revocar este permiso en cualquier momento desde los Ajustes de tu dispositivo.";
+
+"privacy.section.subscriptions.title" = "Suscripciones y compras";
+"privacy.section.subscriptions.body" = "Si decides suscribirte a Pro, las compras y la gestión de la suscripción son manejadas por Apple a través de la App Store. Nosotros no recibimos tu información completa de pago. Apple puede procesar datos personales relacionados con las compras de acuerdo con sus propias políticas de privacidad.";
+
+"privacy.section.pdf.title" = "Exportación y compartición en PDF";
+"privacy.section.pdf.body" = "Si exportas una bóveda a PDF, el archivo se genera localmente en tu dispositivo. Si después decides compartir o guardar ese PDF usando las opciones de compartir de iOS, el archivo será gestionado por el destino o servicio que selecciones.";
+
+"privacy.section.sharing.title" = "Compartición de datos";
+"privacy.section.sharing.body" = "En este momento, Renewal Vault no vende tus datos personales ni comparte el contenido de tus bóvedas con anunciantes de terceros.";
+
+"privacy.section.control.title" = "Tu control";
+"privacy.section.control.body" = "Puedes gestionar o eliminar tus datos editando o borrando elementos y bóvedas, eliminando adjuntos, borrando los archivos exportados que hayas creado, revocando permisos en los Ajustes de iOS o eliminando la app de tu dispositivo.";
+
+"privacy.section.changes.title" = "Cambios";
+"privacy.section.changes.body" = "Si Renewal Vault añade nuevas funciones en el futuro, como sincronización en la nube, analíticas, integraciones externas o servicios con cuenta de usuario, esta Política de Privacidad deberá actualizarse en consecuencia.";
 "paywall.title" = "Renewal Vault Pro";
 "paywall.features" = "Bóvedas ilimitadas, elementos ilimitados, adjuntos ilimitados, exportación PDF.";
 
@@ -164,3 +190,12 @@
 "dashboard.chart_hidden_multi_currency" = "El gráfico por bóveda solo se muestra con totales anuales de una sola moneda.";
 
 "onboard.dashboard" = "Planifica gastos con los datos de tu Panel.";
+
+"vault.export_pdf" = "Exportar bóveda a PDF";
+"vault.export_requires_pro" = "Actualiza a Pro para exportar esta bóveda en PDF.";
+"vault.export_failed" = "No se pudo exportar esta bóveda a PDF.";
+
+"vault.export_summary" = "Resumen";
+"vault.export_current_year_total" = "Total del año actual";
+"vault.export_all_items_total" = "Total de todos los elementos";
+"vault.export_items" = "Elementos";

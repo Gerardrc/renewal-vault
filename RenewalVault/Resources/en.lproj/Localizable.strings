@@ -82,8 +82,34 @@
 "settings.simulate_pro" = "Simulate Pro";
 "settings.reset_onboarding" = "Reset onboarding";
 
-"privacy.body" = "Renewal Vault stores your data locally on device. We do not track your activity by default.";
+"privacy.title" = "Privacy Policy";
 
+"privacy.section.data.title" = "Data stored on your device";
+"privacy.section.data.body" = "Renewal Vault stores your vaults, items, renewal dates, notes, attachment references, reminder settings, onboarding state, and language preferences locally on your device. We do not currently require you to create an account, and we do not operate our own backend server to store your personal renewal data.";
+
+"privacy.section.attachments.title" = "Attachments";
+"privacy.section.attachments.body" = "If you choose to add photos, PDFs, or files to an item, those attachments are stored locally on your device as part of the app’s data. They are used only so you can view and manage your own documents inside the app.";
+
+"privacy.section.notifications.title" = "Notifications";
+"privacy.section.notifications.body" = "If you grant notification permission, Renewal Vault schedules local notifications on your device to remind you about upcoming renewals. These notifications are generated locally by the app and are not sent through our own servers.";
+
+"privacy.section.calendar.title" = "Calendar access";
+"privacy.section.calendar.body" = "If you grant calendar permission, Renewal Vault can help you create calendar events related to your renewals. Calendar access is used only for this feature and only with your permission. You can revoke this permission at any time in your device Settings.";
+
+"privacy.section.subscriptions.title" = "Subscriptions and purchases";
+"privacy.section.subscriptions.body" = "If you choose to subscribe to Pro, purchases and subscription management are handled by Apple through the App Store. We do not receive your full payment information. Apple may process personal data related to purchases according to Apple’s own privacy policies.";
+
+"privacy.section.pdf.title" = "PDF export and sharing";
+"privacy.section.pdf.body" = "If you export a vault to PDF, the file is generated locally on your device. If you then choose to share or save that PDF using iOS sharing options, the file will be handled by the destination or service you select.";
+
+"privacy.section.sharing.title" = "Data sharing";
+"privacy.section.sharing.body" = "At this time, Renewal Vault does not sell your personal data and does not share your vault contents with third-party advertisers.";
+
+"privacy.section.control.title" = "Your control";
+"privacy.section.control.body" = "You can manage or remove your data by editing or deleting items and vaults, removing attachments, deleting exported files you created, revoking permissions in iOS Settings, or deleting the app from your device.";
+
+"privacy.section.changes.title" = "Changes";
+"privacy.section.changes.body" = "If Renewal Vault adds new features in the future such as cloud sync, analytics, external integrations, or account-based services, this Privacy Policy should be updated accordingly.";
 "paywall.title" = "Renewal Vault Pro";
 "paywall.features" = "Unlimited vaults, unlimited items, unlimited attachments, PDF export.";
 
@@ -164,3 +190,12 @@
 "dashboard.chart_hidden_multi_currency" = "Vault chart is shown only for single-currency yearly totals.";
 
 "onboard.dashboard" = "Plan spending with your Dashboard insights.";
+
+"vault.export_pdf" = "Export Vault PDF";
+"vault.export_requires_pro" = "Upgrade to Pro to export this vault as PDF.";
+"vault.export_failed" = "Could not export this vault to PDF.";
+
+"vault.export_summary" = "Summary";
+"vault.export_current_year_total" = "Current year total";
+"vault.export_all_items_total" = "All items total";
+"vault.export_items" = "Items";

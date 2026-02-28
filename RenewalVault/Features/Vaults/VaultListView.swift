@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct VaultListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -225,9 +226,19 @@ private struct VaultIconPicker: View {
 }
 
 struct VaultDetailView: View {
+    @EnvironmentObject private var entitlement: EntitlementService
     let vault: Vault
     @Query(sort: \Item.expiryDate) private var allItems: [Item]
     @State private var showEdit = false
+    @State private var showExportUpsellAlert = false
+    @State private var showPaywall = false
+    @State private var exportDraft: ExportDraft?
+    @State private var showExportErrorAlert = false
+
+    private struct ExportDraft: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
 
     var vaultItems: [Item] {
         Self.items(for: vault.id, in: allItems)
@@ -255,7 +266,10 @@ struct VaultDetailView: View {
         }
         .navigationTitle(vault.name)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button("vault.export_pdf".localized) {
+                    exportVaultPDF()
+                }
                 Button("common.edit".localized) {
                     showEdit = true
                 }
@@ -266,9 +280,58 @@ struct VaultDetailView: View {
                 VaultEditorView(mode: .edit(vault))
             }
         }
+        .sheet(isPresented: $showPaywall) {
+            NavigationStack { PaywallView() }
+        }
+        .sheet(item: $exportDraft) { draft in
+            ShareSheet(activityItems: [draft.url])
+        }
+        .alert("vault.pro_required_title".localized, isPresented: $showExportUpsellAlert) {
+            Button("common.close".localized, role: .cancel) {}
+            Button("common.go_pro".localized) {
+                showPaywall = true
+            }
+        } message: {
+            Text("vault.export_requires_pro".localized)
+        }
+        .alert("common.notice".localized, isPresented: $showExportErrorAlert) {
+            Button("common.ok".localized, role: .cancel) {}
+        } message: {
+            Text("vault.export_failed".localized)
+        }
+    }
+
+    private func exportVaultPDF() {
+        guard Self.canExportPDF(isPro: entitlement.isPro) else {
+            showExportUpsellAlert = true
+            return
+        }
+
+        guard let url = VaultPDFExporter().export(vault: vault) else {
+            showExportErrorAlert = true
+            return
+        }
+
+        exportDraft = ExportDraft(url: url)
+    }
+
+    static var hasExportAction: Bool { true }
+
+    static func canExportPDF(isPro: Bool) -> Bool {
+        FeatureGate.canExportPDF(tier: isPro ? .pro : .free)
     }
 
     static func items(for vaultID: UUID, in items: [Item]) -> [Item] {
         items.filter { $0.vault?.id == vaultID }
     }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

@@ -186,10 +186,20 @@ struct HomeView: View {
 
     @MainActor
     private func addToCalendar(item: Item) async {
-        let store = CalendarEventService.shared.eventStore()
-        let event = CalendarEventService.shared.prepareEditorEvent(for: item)
-        calendarDraft = CalendarDraft(eventStore: store, event: event)
+        do {
+            let store = CalendarEventService.shared.eventStore()
+            let event = try await CalendarEventService.shared.prepareExpiryEvent(for: item)
+            calendarDraft = CalendarDraft(eventStore: store, event: event)
+        } catch {
+            if case CalendarEventError.accessDenied = error {
+                showCalendarDeniedAlert = true
+            } else {
+                calendarAlertMessage = "calendar.add_failed".localized
+                showCalendarAlert = true
+            }
+        }
     }
+
 
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
